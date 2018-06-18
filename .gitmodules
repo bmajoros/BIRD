@@ -1,3 +1,0 @@
-[submodule "python"]
-	path = python
-	url = git@github.com:bmajoros/python.git
