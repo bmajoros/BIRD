@@ -19,7 +19,7 @@ BOOM/libBOOM.a:
 	cd BOOM ; make all ; cd -
 
 permissions:
-	chmod a+x *.pl ; chmod a+x perl/*.pl
+	chmod a+x *.py
 
 #---------------------------------------------------------
 $(OBJ)/swift.o:\
