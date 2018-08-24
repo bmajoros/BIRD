@@ -10,6 +10,17 @@ LIBS		= -LBOOM -lBOOM -lgsl -lm -lgslcblas
 $(OBJ):
 	mkdir $(OBJ)
 
+all: \
+	permissions \
+	BOOM/libBOOM.a \
+	swift
+
+BOOM/libBOOM.a:
+	cd BOOM ; make all ; cd -
+
+permissions:
+	chmod a+x *.pl ; chmod a+x perl/*.pl
+
 #---------------------------------------------------------
 $(OBJ)/swift.o:\
 		swift.C
