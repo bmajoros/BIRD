@@ -157,7 +157,7 @@ def summarize(thetas,fields,ID,minRight):
 #=========================================================================
 (options,args)=getopt.getopt(sys.argv[1:],"s:")
 if(len(args)!=6):
-    exit(ProgramName.get()+" [-s file] <model> <min-effect> <input.txt> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   variant range is zero-based and inclusive\n")
+    exit(ProgramName.get()+" [-s file] <model> <min-effect> <input.txt> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
 (model,minEffect,inFile,outfile,numSamples,numVariants)=args
 stanFile=None
 for pair in options:
@@ -168,8 +168,7 @@ if(not rex.find("(\d+)-(\d+)",numVariants)):
 firstIndex=int(rex[1])
 lastIndex=int(rex[2])
 minEffect=float(minEffect)
-if(minEffect<0): raise Exception("Invalid value for min-effect")
-minEffect+=1.0
+if(minEffect<1): raise Exception("Min-effect must be >= 1")
 
 # Process all input lines, each line = one variant (one MCMC run)
 thetaIndex=None

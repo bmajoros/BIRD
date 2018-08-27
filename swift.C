@@ -9,6 +9,7 @@
 #include "BOOM/CommandLine.H"
 #include "BOOM/File.H"
 #include "BOOM/Regex.H"
+#include "BOOM/Exceptions.H"
 #include "BOOM/GSL/BetaDistribution.H"
 #include "BOOM/GSL/Random.H"
 #include "BOOM/VectorSorter.H"
@@ -26,14 +27,14 @@ class Application {
   void skipLines(int num,File &);
   float getMedian();
   void getCI(float percent,float &left,float &right);
-  void getP(float &leftP,float &rightP,float &P);
+  void getP_reg(float lambda,float &leftP,float &rightP,float &P);
   void addPseudocounts();
 public:
   Application();
   int main(int argc,char *argv[]);
-  bool loadInputs(File &);
+  bool loadInputs(File &,String &variantID);
   void performSampling(int numSamples,float concentration);
-  void reportSummary();
+  void reportSummary(const String &id,float lambda);
 };
 
 
@@ -64,17 +65,20 @@ int Application::main(int argc,char *argv[])
 {
   // Process command line
   CommandLine cmd(argc,argv,"");
-  if(cmd.numArgs()!=4)
+  if(cmd.numArgs()!=5)
     throw String("\n\
-swift <input.txt> <concentration> <first-last> <#samples>\n\
+swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
    variant indices are 0-based and inclusive\n\
+   1.25 is recommended for lambda (min effect size)\n\
    100 is recommended for the concentration\n\
    1000 is recommended for #samples\n\
 ");
   const String infile=cmd.arg(0);
   const float concentration=cmd.arg(1).asFloat();
-  const String variantRange=cmd.arg(2);
-  const int numSamples=cmd.arg(3).asInt();
+  const float lambda=cmd.arg(2).asFloat();
+  const String variantRange=cmd.arg(3);
+  const int numSamples=cmd.arg(4).asInt();
+  if(lambda<1.0) throw "lambda must be >= 1";
 
   // Get ready to run on input file
   Regex reg("(\\d+)-(\\d+)");
@@ -83,18 +87,19 @@ swift <input.txt> <concentration> <first-last> <#samples>\n\
   const int lastVariant=reg[2].asInt();
   File f(infile);
   skipLines(firstVariant,f);
+  String id;
 
   for(int i=firstVariant ; i<=lastVariant ; ++i) {
     DNA.clear(); RNA.clear(); samples.clear();
 
     // Load inputs
-    if(!loadInputs(f)) break;
+    if(!loadInputs(f,id)) break;
 
     // Draw samples
     performSampling(numSamples,concentration);
 
     // Report median and 95% CI
-    reportSummary();
+    reportSummary(id,lambda);
   }
 
   return 0;
@@ -124,7 +129,7 @@ void Application::readReps(const Vector<String> &fields,int countField,
 
 
 
-bool Application::loadInputs(File &f)
+bool Application::loadInputs(File &f,String &variantID)
 {
   if(f.eof()) throw "End of file";
   String line=f.getline();
@@ -132,10 +137,11 @@ bool Application::loadInputs(File &f)
   if(line.isEmpty()) return false;
   Vector<String> fields;
   line.getFields(fields);
-  if(fields.size()<8) throw line+" : Not enough fields";
-  readReps(fields,4,DNA);
-  const int numDnaReps=fields[4].asInt();
-  readReps(fields,5+numDnaReps*2,RNA);
+  if(fields.size()<7) throw line+" : Not enough fields";
+  variantID=fields[0];
+  readReps(fields,1,DNA);
+  const int numDnaReps=fields[1].asInt();
+  readReps(fields,2+numDnaReps*2,RNA);
   DNA.collapse();
   RNA.collapse();
   addPseudocounts();
@@ -208,23 +214,24 @@ void Application::getCI(float percent,float &left,float &right)
 
 
 
-void Application::getP(float &leftP,float &rightP,float &P)
+void Application::getP_reg(float lambda,float &leftP,float &rightP,float &P)
 {
   const int n=samples.size();
-  int oneOrLess=0;
-  int oneOrGreater=0;
+  float invLambda=1.0/lambda;
+  int numLess=0;
+  int numGreater=0;
   for(int i=0 ; i<n ; ++i) {
-    if(samples[i].getTheta()<=1) ++oneOrLess;
-    if(samples[i].getTheta()>=1) ++oneOrGreater;
-    leftP=float(oneOrLess)/float(n);
-    rightP=float(oneOrGreater)/float(n);
-    P=leftP<rightP ? leftP : rightP;
+    if(samples[i].getTheta()<invLambda) ++numLess;
+    if(samples[i].getTheta()>lambda) ++numGreater;
+    leftP=float(numLess)/float(n);
+    rightP=float(numGreater)/float(n);
+    P=leftP>rightP ? leftP : rightP;
   }
 }
 
 
 
-void Application::reportSummary()
+void Application::reportSummary(const String &id,float lambda)
 {
   // Sort the samples
   SwiftSampleComparator cmp;
@@ -239,12 +246,11 @@ void Application::reportSummary()
   getCI(0.95,left,right);
 
   // Get p-value-like statistics
-  float leftP, rightP, P;
-  getP(leftP,rightP,P);
+  float leftP, rightP, P_reg;
+  getP_reg(lambda,leftP,rightP,P_reg);
 
   // Generate output
-  cout<<"P\t0\t"<<median<<"\t0\t"<<left<<"\t"<<right<<"\t"
-      <<leftP<<"\t"<<rightP<<"\t"<<P<<"\t0\t0\t0\t0\t0"<<endl;
+  cout<<id<<"\t"<<median<<"\t"<<left<<"\t"<<right<<"\t"<<P_reg<<endl;
 }
 
 
