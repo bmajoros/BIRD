@@ -13,6 +13,7 @@
 #include "BOOM/GSL/BetaDistribution.H"
 #include "BOOM/GSL/Random.H"
 #include "BOOM/VectorSorter.H"
+#include "BOOM/File.H"
 #include "Replicates.H"
 #include "SwiftSample.H"
 using namespace std;
@@ -29,6 +30,7 @@ class Application {
   void getCI(float percent,float &left,float &right);
   void getP_reg(float lambda,float &leftP,float &rightP,float &P);
   void addPseudocounts();
+  void save(File &) const;
 public:
   Application();
   int main(int argc,char *argv[]);
@@ -64,7 +66,7 @@ Application::Application()
 int Application::main(int argc,char *argv[])
 {
   // Process command line
-  CommandLine cmd(argc,argv,"");
+  CommandLine cmd(argc,argv,"s:");
   if(cmd.numArgs()!=5)
     throw String("\n\
 swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
@@ -72,6 +74,7 @@ swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
    1.25 is recommended for lambda (min effect size)\n\
    100 is recommended for the concentration\n\
    1000 is recommended for #samples\n\
+   optional: -s mcmc.txt = save samples in mcmc.txt\n\
 ");
   const String infile=cmd.arg(0);
   const float concentration=cmd.arg(1).asFloat();
@@ -79,6 +82,7 @@ swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
   const String variantRange=cmd.arg(3);
   const int numSamples=cmd.arg(4).asInt();
   if(lambda<1.0) throw "lambda must be >= 1";
+  String sampleFilename=cmd.optParm('s');
 
   // Get ready to run on input file
   Regex reg("(\\d+)-(\\d+)");
@@ -88,6 +92,8 @@ swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
   File f(infile);
   skipLines(firstVariant,f);
   String id;
+  File *sampleFile=sampleFilename.empty() ? NULL : 
+    new File(sampleFilename,"w");
 
   for(int i=firstVariant ; i<=lastVariant ; ++i) {
     DNA.clear(); RNA.clear(); samples.clear();
@@ -100,8 +106,12 @@ swift <input.txt> <concentration> <lambda> <first-last> <#samples>\n\
 
     // Report median and 95% CI
     reportSummary(id,lambda);
+
+    // Save samples if requested
+    if(sampleFile) save(*sampleFile);
   }
 
+  delete sampleFile;
   return 0;
 }
 
@@ -255,6 +265,17 @@ void Application::reportSummary(const String &id,float lambda)
 
 
 
+void Application::save(File &f) const
+{
+  const int n=samples.size();
+  for(int i=0 ; i<n ; ++i) {
+    const SwiftSample &sample=samples[i];
+    float theta=int(sample.getTheta()*10000+5.0/9.0)/10000.0;
+    f.print(String(theta));
+    if(i+1<n) f.print("\t");
+  }
+  f.print("\n");
+}
 
 
 

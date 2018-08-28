@@ -155,24 +155,29 @@ def summarize(thetas,fields,ID,minRight):
 #=========================================================================
 # main()
 #=========================================================================
-(options,args)=getopt.getopt(sys.argv[1:],"s:")
+(options,args)=getopt.getopt(sys.argv[1:],"s:t:")
 if(len(args)!=6):
-    exit(ProgramName.get()+" [-s file] <model> <min-effect> <input.txt> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
+    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <input.txt> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
 (model,minEffect,inFile,outfile,numSamples,numVariants)=args
 stanFile=None
+thetaFile=None
 for pair in options:
     (key,value)=pair
     if(key=="-s"): stanFile=value
+    if(key=="-t"): thetaFile=value
 if(not rex.find("(\d+)-(\d+)",numVariants)):
     exit(numVariants+": specify range of variants: first-last")
 firstIndex=int(rex[1])
 lastIndex=int(rex[2])
 minEffect=float(minEffect)
 if(minEffect<1): raise Exception("Min-effect must be >= 1")
+THETA=None
+if(thetaFile is not None): THETA=open(thetaFile,"wt")
 
 # Process all input lines, each line = one variant (one MCMC run)
 thetaIndex=None
 variantIndex=0
+
 with open(inFile,"rt") as IN:
     for line in IN:
         # Check whether this variant is in the range to be processed
@@ -186,10 +191,16 @@ with open(inFile,"rt") as IN:
         if(thetas is None): continue
         summarize(thetas,fields,ID,minEffect)
         variantIndex+=1
+        if(THETA is not None):
+            for i in range(len(thetas)):
+                print(thetas[i],file=THETA,end="")
+                if(i<len(thetas)): print("\t",file=THETA,end="")
+            print(file=THETA)
 os.remove(STDERR)
 os.remove(INPUT_FILE)
 if(stanFile is None):
     os.remove(OUTPUT_TEMP)
 else:
     os.system("cp "+OUTPUT_TEMP+" "+stanFile)
+if(THETA is not None): THETA.close()
 
