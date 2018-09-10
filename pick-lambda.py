@@ -14,7 +14,7 @@ import sys
 import ProgramName
 import os
 
-BIRD=os.environ['BIRD']
+BIRD=os.environ.get("BIRD",None)
 if(BIRD is None): exit("Please set the $BIRD environment variable")
 TABLE=BIRD+"/lambda.txt"
 FDRS=(0.1, 0.05, 0.01)
@@ -37,8 +37,6 @@ class Record:
         return abs(this.fdrI-fdrI)+abs(this.thetaI-thetaI)+\
             abs(this.mafI-mafI)+abs(this.depthI-depthI)
     def matches(this,fdr,theta,maf,depth):
-        #print(this.fdr,fdr,"\t",this.theta,theta,"\t",this.maf,maf,"\t",
-        #      this.depth,depth)
         return this.fdr==fdr and this.theta==theta and this.maf==maf and\
             this.depth==depth
 
@@ -94,7 +92,6 @@ depth=int(depth)
 if(fdr!=0.1 and fdr!=0.05 and fdr!=0.01):
     exit("FDR must be one of 0.1, 0.05, 0.01")
 if(theta<0): exit("effect must be > 0")
-#if(theta>1): theta=1.0/theta
 if(maf<=0 or maf>=1): exit("maf must be between 0 and 1")
 if(depth<=0): exit("depth must be > 0")
 
@@ -103,7 +100,6 @@ fdrI=findNearest(fdr,FDRS)[1]
 (theta,thetaI)=findNearest(theta,THETAS)
 (maf,mafI)=findNearest(maf,MAFS)
 (depth,depthI)=findNearest(depth,DEPTHS)
-#print("fdr=",fdr,"theta=",theta,"maf=",maf,"depth=",depth)
 
 table=loadTable(TABLE)
 minDist=None
