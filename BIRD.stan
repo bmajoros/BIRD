@@ -32,7 +32,7 @@ model {
    c ~ gamma(1.1, 0.0005); // concentration parameter for prior on qi
    s ~ gamma(1.1,3);       // variance parameter for prior on theta
    log(theta)/s ~ normal(0,1); // prior on theta
-   target+=-log(theta)-log(s); // Jacobian for lognormal(0,1/s) theta prior
+   target+=-log(theta)-log(s); // Jacobian for lognormal theta prior
    for(i in 1:N_RNA)
       qi[i] ~ betaModeConc(q,c);
 
