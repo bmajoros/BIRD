@@ -60,7 +60,7 @@ def writeInitializationFile(fields,filename):
     for i in range(DNAreps):
         totalRef+=int(fields[2+i*2])
         totalAlt+=int(fields[3+i*2])
-    v=float(totalAlt)/float(totalAlt+totalRef)
+    v=float(totalAlt+1)/float(totalAlt+totalRef+2)
     if(v==0): v=0.01
     rnaIndex=2+2*DNAreps
     RNAreps=int(fields[rnaIndex])
@@ -90,7 +90,12 @@ def getMedian(thetas):
     # Precondition: thetas is already sorted
     n=len(thetas)
     mid=int(n/2)
-    if(n%2==0): return (thetas[mid-1]+thetas[mid])/2.0
+    if(n%2==0): 
+        #print("mid=",mid)
+        #print("len(thetas)=",len(thetas))
+        #print("first value=",thetas[mid-1])
+        #print("second value=",thetas[mid])
+        return (thetas[mid-1]+thetas[mid])/2.0
     return thetas[mid]
 
 def getCredibleInterval(thetas,alpha):
@@ -116,6 +121,7 @@ def runVariant(model,fields,numSamples,outfile):
         " data file="+INPUT_FILE+\
         init+\
         " output file="+OUTPUT_TEMP+" refresh=0 > "+STDERR
+    #print(cmd)
     os.system(cmd)
 
     # Parse MCMC output
