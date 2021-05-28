@@ -19,6 +19,7 @@ rex=Rex()
 import TempFilename
 import getopt
 
+DEBUG=False
 WARMUP=1000
 ALPHA=0.05
 STDERR=TempFilename.generate(".stderr")
@@ -121,25 +122,27 @@ def runVariant(model,fields,numSamples,outfile):
         " data file="+INPUT_FILE+\
         init+\
         " output file="+OUTPUT_TEMP+" refresh=0 > "+STDERR
-    #print(cmd)
+    if(DEBUG):
+        print(cmd)
+        exit()
     os.system(cmd)
 
     # Parse MCMC output
     thetas=[];
-    OUT=open(outfile,"wt")
+    OUT=None if outfile=="." else open(outfile,"wt")
     with open(OUTPUT_TEMP,"rt") as IN:
         for line in IN:
             if(len(line)==0 or line[0]=="#"): continue
             fields=line.rstrip().split(",")
             numFields=len(fields)
             if(numFields>0 and fields[0]=="lp__"):
-                printFields(fields,OUT)
+                if(OUT is not None): printFields(fields,OUT)
                 thetaIndex=getFieldIndex("theta",fields)
             else:
-                writeToFile(fields,OUT)
+                if(OUT is not None): writeToFile(fields,OUT)
                 theta=float(fields[thetaIndex])
                 thetas.append(theta)
-    OUT.close()
+    if(OUT is not None): OUT.close()
     thetas.sort(key=lambda x: x)
     return thetas
 

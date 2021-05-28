@@ -172,7 +172,13 @@ void Application::performSampling(int numSamples,float conc)
     do { p=beta1.random(); } while(p==0.0 || p==1.0);
 
     // Sample q from P(q|p,k,m), using beta prior parameterized by mean & conc
-    const float c=conc;
+
+    // ### TRYING THE ADAPTIVE CONCENTRATION METHOD:
+    //const float c=conc;
+    //const float c=5.5/p;
+    const float c=5.5/p;
+    // ###
+
     const float alpha=p*(c-2);     // prior
     const float beta=(1-p)*(c-2);  // prior
     GSL::BetaDistribution beta2(alpha+k,beta+m); // posterior
