@@ -25,6 +25,7 @@ from Stan import Stan
 DEBUG=False
 WARMUP=1000
 ALPHA=0.05
+POP_CONC=100 ### THIS NEEDS TO BE ESTIMATED FROM DATA!  
 STDERR=TempFilename.generate(".stderr")
 INPUT_FILE=TempFilename.generate(".staninputs")
 INIT_FILE=TempFilename.generate(".staninit")
