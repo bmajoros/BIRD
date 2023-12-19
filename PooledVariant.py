@@ -16,6 +16,12 @@ from Pool import Pool
 # Instance Methods:
 #   PooledVariant(ID)
 #   addPool(Pool)
+#   int numPools()
+#   int getMaxDnaReps()
+#   int getMaxRnaReps()
+#   int[] getDnaReps()
+#   int[] getRnaReps()
+#   int[] getFreqs()
 # Class Methods:
 #   
 #=========================================================================
@@ -26,6 +32,18 @@ class PooledVariant:
         self.pools=[]
     def addPool(self,pool):
         self.pools.append(pool)
+    def numPools(self):
+        return len(self.pools)
+    def getFreqs(self):
+        freqs=[pool.freq for pool in pools]
+    def getDnaReps(self):
+        return [len(pool.DNA) for pool in pools]
+    def getRnaReps(self):
+        return [len(pool.RNA) for pool in pools]
+    def getMaxDnaReps(self):
+        return max(self.getDnaReps())
+    def getMaxRnaReps(self):
+        return max(self.getRnaReps())
         
 
 

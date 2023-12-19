@@ -8,7 +8,10 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import (bytes, dict, int, list, object, range, str, ascii,
    chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
 from EssexParser import EssexParser
+from EssexNode import EssexNode
 from PooledVariant import PooledVariant
+from Pool import Pool
+from Replicate import Replicate
 
 #=========================================================================
 # Attributes:
@@ -41,17 +44,21 @@ class PooledParser:
             pooledVariant.addPool(pool)
         return pooledVariant
     def parsePool(self,subtree):
-        if(subtree.numElements()<3):
+        if(subtree.numElements()<4):
             raise Exception("pool contains too few fields")
         poolNumEssex=subtree[0]
         if(EssexNode.isaNode(poolNumEssex)):
             raise Exception("Expecting integer pool number as first field")
         poolNum=int(poolNumEssex)
-        pool=Pool(poolNum)
+        freq=subtree.getAttribute("freq")
+        if(freq is None or freq==""):
+            raise Exception("Missing 'freq' attribute for allele frequency")
+        freq=float(freq)
+        pool=Pool(poolNum,freq)
         dnaReps=subtree.findChildren("DNA")
         rnaReps=subtree.findChildren("RNA")
-        for rep in dnaReps: pool.DNA.append(parseRep(rep))
-        for rep in rnaReps: pool.RNA.append(parseRep(rep))
+        for rep in dnaReps: pool.DNA.append(self.parseRep(rep))
+        for rep in rnaReps: pool.RNA.append(self.parseRep(rep))
         return pool
     def parseRep(self,subtree):
         ref=int(subtree.getAttribute("ref")) # need to check for int
