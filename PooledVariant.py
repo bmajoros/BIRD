@@ -36,6 +36,7 @@ class PooledVariant:
         return len(self.pools)
     def getFreqs(self):
         freqs=[pool.freq for pool in self.pools]
+        return freqs
     def getDnaReps(self):
         return [len(pool.DNA) for pool in self.pools]
     def getRnaReps(self):

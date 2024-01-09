@@ -84,12 +84,28 @@ def writeInputsFile(stan,variant,filename):
     dnaRefCounts=[[rep.ref for rep in pool.DNA] for pool in variant.pools]
     rnaAltCounts=[[rep.alt for rep in pool.RNA] for pool in variant.pools]
     rnaRefCounts=[[rep.ref for rep in pool.RNA] for pool in variant.pools]
+    dnaAltCounts=expandArray(dnaAltCounts,maxDnaReps)
+    dnaRefCounts=expandArray(dnaRefCounts,maxDnaReps)
+    rnaAltCounts=expandArray(rnaAltCounts,maxRnaReps)
+    rnaRefCounts=expandArray(rnaRefCounts,maxRnaReps)
     stan.writeTwoDimArray("a",dnaAltCounts,numPools,maxDnaReps,OUT)
     stan.writeTwoDimArray("b",dnaRefCounts,numPools,maxDnaReps,OUT)
     stan.writeTwoDimArray("k",rnaAltCounts,numPools,maxRnaReps,OUT)
     stan.writeTwoDimArray("m",rnaRefCounts,numPools,maxRnaReps,OUT)
     OUT.close()
 
+def expandArray(array,desiredSize):
+    newArray=[]
+    numPools=len(array)
+    for i in range(numPools):
+        oldPool=array[i]
+        newPool=[x for x in oldPool]
+        oldPoolSize=len(oldPool)
+        for j in range(oldPoolSize,desiredSize):
+            newPool.append(0)
+        newArray.append(newPool)
+    return newArray
+    
 def runVariant(stan,variant,numSamples,outfile):
     # Write inputs file for STAN
     writeInputsFile(stan,variant,INPUT_FILE)
@@ -103,11 +119,11 @@ def runVariant(stan,variant,numSamples,outfile):
     os.system(cmd)
 
     # Parse MCMC output
-    parser=StanParser(filename)
-    thetas=parser.getVariable(name)    
+    parser=StanParser(OUTPUT_TEMP)
+    thetas=parser.getVariable("theta")    
     return (thetas,parser)
 
-def summarize(parser,fields,ID,minRight):
+def summarize(parser,thetas,ID,minRight):
     (median,CI_left,CI_right)=parser.getMedianAndCI(1.0-ALPHA,"theta")
     maxLeft=1.0/minRight
     leftP=parser.getLeftTail("theta",maxLeft)
@@ -141,18 +157,18 @@ stan=Stan(model)
 # Process all input lines, each line = one variant (one MCMC run)
 thetaIndex=None
 variantIndex=0
-parser=PooledParser(inFile)
+pooledParser=PooledParser(inFile)
 while(True):
-    variant=parser.nextVariant()
+    variant=pooledParser.nextVariant()
     if(variant is None): break
     # Check whether this variant is in the range to be processed
     if(variantIndex<firstIndex):
         variantIndex+=1
         continue
     elif(variantIndex>lastIndex): break
-    (thetas,parser)=runVariant(stan,variant,numSamples,outfile)
+    (thetas,stanParser)=runVariant(stan,variant,numSamples,outfile)
     if(thetas is None): continue
-    summarize(parser,fields,variant.ID,minEffect)
+    summarize(stanParser,thetas,variant.ID,minEffect)
     variantIndex+=1
     if(THETA is not None):
         for i in range(len(thetas)):
