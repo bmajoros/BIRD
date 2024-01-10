@@ -18,7 +18,7 @@ data {
 }
 
 parameters {
-   real<lower=0> pop_conc;        // Concentration of beta prior on p
+   real<lower=2.001> pop_conc;        // Concentration of beta prior on p
    real<lower=0,upper=1> p[N_POOLS]; // alt allele freq in DNA library
 }
 
