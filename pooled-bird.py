@@ -25,7 +25,7 @@ from Stan import Stan
 DEBUG=False
 WARMUP=1000
 ALPHA=0.05
-POP_CONC=100 ### THIS NEEDS TO BE ESTIMATED FROM DATA!  
+#POP_CONC=1500 ### THIS NEEDS TO BE ESTIMATED FROM EACH DATA SET!
 STDERR=TempFilename.generate(".stderr")
 INPUT_FILE=TempFilename.generate(".staninputs")
 INIT_FILE=TempFilename.generate(".staninit")
@@ -59,12 +59,22 @@ def writeInitializationFile(stan,variant,filename):
     numPools=variant.numPools()
     stan.writeOneDimArray("p",freqs,numPools,OUT)
     maxRnaReps=variant.getMaxRnaReps()
-    qiInit=[freqs]*maxRnaReps
+    #qiInit=[freqs]*maxRnaReps
+    qiInit=makeQiArray(freqs,maxRnaReps)
+    #print("pinit=",freqs)
+    #print("qiInit=",qiInit)
+    #print("numPools=",numPools,", maxRnaReps=",maxRnaReps)
     stan.writeTwoDimArray("qi",qiInit,numPools,maxRnaReps,OUT)
     print("c <- 100",file=OUT)
     print("s <- 1",file=OUT)
     OUT.close()
 
+def makeQiArray(freqs,maxRnaReps):
+    array=[]
+    for f in freqs:
+        array.append([f]*maxRnaReps)
+    return array
+    
 def writeInputsFile(stan,variant,filename):
     OUT=open(filename,"wt")
     numPools=variant.numPools()
@@ -73,7 +83,7 @@ def writeInputsFile(stan,variant,filename):
     maxRnaReps=variant.getMaxRnaReps()
     print("MAX_DNA <- ",maxDnaReps,file=OUT)
     print("MAX_RNA <- ",maxRnaReps,file=OUT)
-    print("pop_conc <- ",POP_CONC,file=OUT) ### need to estimate this!
+    print("pop_conc <- ",POP_CONC,file=OUT)
     freqs=variant.getFreqs()
     stan.writeOneDimArray("pop_freq",freqs,numPools,OUT)
     dnaReps=variant.getDnaReps()
@@ -135,9 +145,9 @@ def summarize(parser,thetas,ID,minRight):
 # main()
 #=========================================================================
 (options,args)=getopt.getopt(sys.argv[1:],"s:t:")
-if(len(args)!=6):
-    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <input.essex> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
-(model,minEffect,inFile,outfile,numSamples,numVariants)=args
+if(len(args)!=7):
+    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <beta-concentration-parm> <input.essex> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
+(model,minEffect,POP_CONC,inFile,outfile,numSamples,numVariants)=args
 stanFile=None
 thetaFile=None
 for pair in options:
@@ -149,6 +159,7 @@ if(not rex.find(r"(\d+)-(\d+)",numVariants)):
 firstIndex=int(rex[1])
 lastIndex=int(rex[2])
 minEffect=float(minEffect)
+POP_CONC=float(POP_CONC)
 if(minEffect<1): raise Exception("Min-effect must be >= 1")
 THETA=None
 if(thetaFile is not None): THETA=open(thetaFile,"wt")

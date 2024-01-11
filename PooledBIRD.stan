@@ -11,7 +11,7 @@ data {
    int<lower=0> N_DNA[N_POOLS];   // # DNA replicates
    int<lower=0> N_RNA[N_POOLS];   // # RNA replicates
    real<lower=0,upper=1> pop_freq[N_POOLS]; // Population alt allele freqs
-   real<lower=0> pop_conc;        // Concentration of beta prior on p
+   real<lower=2> pop_conc;        // Concentration of beta prior on p
    int<lower=0> a[N_POOLS,MAX_DNA]; // DNA alt read counts
    int<lower=0> b[N_POOLS,MAX_DNA]; // DNA ref read counts
    int<lower=0> k[N_POOLS,MAX_RNA]; // RNA alt read counts
