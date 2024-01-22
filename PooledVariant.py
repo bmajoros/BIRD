@@ -8,6 +8,7 @@ from __future__ import (absolute_import, division, print_function,
 from builtins import (bytes, dict, int, list, object, range, str, ascii,
    chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
 from Pool import Pool
+from Replicate import Replicate
 
 #=========================================================================
 # Attributes:
@@ -22,6 +23,8 @@ from Pool import Pool
 #   int[] getDnaReps()
 #   int[] getRnaReps()
 #   int[] getFreqs()
+#   newVar=collapse()
+#   string print()
 # Class Methods:
 #   
 #=========================================================================
@@ -45,7 +48,37 @@ class PooledVariant:
         return max(self.getDnaReps())
     def getMaxRnaReps(self):
         return max(self.getRnaReps())
-        
+    def getAveFreq(self): ### Assumes equal pool sizes!
+        freqs=[pool.freq for pool in self.pools]
+        ave=sum(freqs)/len(freqs)
+        return ave
+    def collapseReps(self,reps,into):
+        for rep in reps:
+            into.ref+=rep.ref
+            into.alt+=rep.alt
+    def collapse(self):
+        newVar=PooledVariant(self.ID)
+        aveFreq=self.getAveFreq()
+        newPool=Pool(1,aveFreq)
+        dna=Replicate(0,0); rna=Replicate(0,0)
+        for pool in self.pools:
+            self.collapseReps(pool.DNA,dna)
+            self.collapseReps(pool.RNA,rna)
+        newPool.DNA.append(dna); newPool.RNA.append(rna)
+        newVar.pools.append(newPool)
+        return newVar
+    def print(self):
+        text="(variant (id "+self.ID+")\n"
+        for pool in self.pools:
+            text+="\t(pool "+str(pool.index)+"\n"
+            text+="\t\t(freq "+str(pool.freq)+")\n"
+            for rep in pool.DNA:
+                text+="\t\t(DNA (ref "+str(rep.ref)+") (alt "+str(rep.alt)+"))\n"
+            for rep in pool.RNA:
+                text+="\t\t(RNA (ref "+str(rep.ref)+") (alt "+str(rep.alt)+"))\n"
+            text+="\t)\n"
+        text+=")"
+        return text
 
 
 
