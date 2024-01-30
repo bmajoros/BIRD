@@ -24,6 +24,7 @@ from Replicate import Replicate
 #   int[] getRnaReps()
 #   int[] getFreqs()
 #   newVar=collapse()
+#   bool dropHomozygousPools() # False if all pools were dropped
 #   string print()
 # Class Methods:
 #   
@@ -67,6 +68,12 @@ class PooledVariant:
         newPool.DNA.append(dna); newPool.RNA.append(rna)
         newVar.pools.append(newPool)
         return newVar
+    def dropHomozygousPools(self):
+        newPools=[]
+        for pool in self.pools:
+            if(pool.hasHetDnaRep()): newPools.append(pool)
+        self.pools=newPools
+        return len(newPools)>0
     def print(self):
         text="(variant (id "+self.ID+")\n"
         for pool in self.pools:

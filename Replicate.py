@@ -14,6 +14,7 @@ from builtins import (bytes, dict, int, list, object, range, str, ascii,
 #   alt : int
 # Instance Methods:
 #   Replicate(ref,alt)
+#   bool rep.isHet()
 # Class Methods:
 #   
 #=========================================================================
@@ -22,7 +23,8 @@ class Replicate:
     def __init__(self,ref,alt):
         self.ref=ref
         self.alt=alt
-        
+    def isHet(self):
+        return self.ref>0 and self.alt>0
 
 
 

@@ -30,19 +30,22 @@ class PooledParser:
         self.parser=EssexParser(filename)
         self.parser=EssexParser(filename)
     def nextVariant(self):
-        tree=self.parser.nextElem()
-        if(tree is None):
-            self.parser.close()
-            return None
-        if(tree.getTag()!="variant"):
-            raise Exception("Expecting variant")
-        ID=tree.getAttribute("id")
-        pooledVariant=PooledVariant(ID)
-        poolSubtrees=tree.findChildren("pool")
-        for subtree in poolSubtrees:
-            pool=self.parsePool(subtree)
-            pooledVariant.addPool(pool)
-        return pooledVariant
+        while(True):
+            tree=self.parser.nextElem()
+            if(tree is None):
+                self.parser.close()
+                return None
+            if(tree.getTag()!="variant"):
+                raise Exception("Expecting variant")
+            ID=tree.getAttribute("id")
+            pooledVariant=PooledVariant(ID)
+            poolSubtrees=tree.findChildren("pool")
+            for subtree in poolSubtrees:
+                pool=self.parsePool(subtree)
+                pooledVariant.addPool(pool)
+            keep=pooledVariant.dropHomozygousPools()
+            if(not keep): continue
+            return pooledVariant
     def parsePool(self,subtree):
         if(subtree.numElements()<4):
             raise Exception("pool contains too few fields")

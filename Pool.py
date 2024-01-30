@@ -17,7 +17,8 @@ from Replicate import Replicate
 #   freq : allele frequency in pool
 # Instance Methods:
 #   Pool(index,freq)
-# Class Methods:
+#   bool hasHetDnaRep() # does it have at least one het replicate?
+# Private methods:
 #   
 #=========================================================================
 class Pool:
@@ -31,6 +32,12 @@ class Pool:
         self.DNA.append(rep)
     def addRnaRep(self,rep):
         self.RNA.append(rep)
+    def hasHetDnaRep(self):
+        for x in self.DNA:
+            if(x.isHet()): return True
+        return False
+
+        
 
 
 

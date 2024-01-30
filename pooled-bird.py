@@ -139,7 +139,8 @@ def summarize(parser,thetas,ID,minRight):
     leftP=parser.getLeftTail("theta",maxLeft)
     rightP=parser.getRightTail("theta",minRight)
     Preg=leftP if leftP>rightP else rightP
-    print(ID,median,CI_left,CI_right,Preg,sep="\t")
+    print(ID,round(median,3),round(CI_left,3),round(CI_right,3),
+          round(Preg,3),sep="\t")
 
 #=========================================================================
 # main()
