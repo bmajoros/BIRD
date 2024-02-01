@@ -36,6 +36,15 @@ class Pool:
         for x in self.DNA:
             if(x.isHet()): return True
         return False
+    def collapseReps(self,reps):
+        ref=sum([rep.ref for rep in reps])
+        alt=sum([rep.alt for rep in reps])
+        rep0=reps[0]
+        rep0.ref=ref; rep0.alt=alt
+        del reps[1:]
+    def collapseReplicates(self):
+        self.collapseReps(self.DNA)
+        self.collapseReps(self.RNA)
 
         
 

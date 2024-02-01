@@ -9,6 +9,7 @@ from builtins import (bytes, dict, int, list, object, range, str, ascii,
    chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
 from Pool import Pool
 from Replicate import Replicate
+import copy
 
 #=========================================================================
 # Attributes:
@@ -68,6 +69,16 @@ class PooledVariant:
         newPool.DNA.append(dna); newPool.RNA.append(rna)
         newVar.pools.append(newPool)
         return newVar
+    def duplicateFirstPool(self):
+        n=len(self.pools)
+        first=self.pools[0]
+        self.pools=[]
+        for i in range(n):
+            new=copy.deepcopy(first)
+            self.pools.append(new)
+            new.index=i
+    def collapseReplicates(self):
+        for pool in self.pools: pool.collapseReplicates()
     def dropHomozygousPools(self):
         newPools=[]
         for pool in self.pools:
