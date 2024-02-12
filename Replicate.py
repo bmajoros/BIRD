@@ -7,6 +7,7 @@ from __future__ import (absolute_import, division, print_function,
    unicode_literals, generators, nested_scopes, with_statement)
 from builtins import (bytes, dict, int, list, object, range, str, ascii,
    chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
+import numpy as np
 
 #=========================================================================
 # Attributes:
@@ -15,6 +16,7 @@ from builtins import (bytes, dict, int, list, object, range, str, ascii,
 # Instance Methods:
 #   Replicate(ref,alt)
 #   bool rep.isHet()
+#   rep.resample(freq)
 # Class Methods:
 #   
 #=========================================================================
@@ -25,6 +27,9 @@ class Replicate:
         self.alt=alt
     def isHet(self):
         return self.ref>0 and self.alt>0
-
+    def resample(self,p):
+        n=self.ref+self.alt
+        self.alt=np.random.binomial(n,p)
+        self.ref=n-self.alt
 
 

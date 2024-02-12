@@ -25,6 +25,7 @@ import copy
 #   int[] getRnaReps()
 #   int[] getFreqs()
 #   newVar=collapse()
+#   var.forceEqualFreqs()
 #   bool dropHomozygousPools() # False if all pools were dropped
 #   string print()
 # Class Methods:
@@ -58,6 +59,9 @@ class PooledVariant:
         for rep in reps:
             into.ref+=rep.ref
             into.alt+=rep.alt
+    def forceEqualFreqs(self,freq):
+        for pool in self.pools:
+            pool.changeFreqAndResample(freq)
     def collapse(self):
         newVar=PooledVariant(self.ID)
         aveFreq=self.getAveFreq()

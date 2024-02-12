@@ -18,6 +18,7 @@ from Replicate import Replicate
 # Instance Methods:
 #   Pool(index,freq)
 #   bool hasHetDnaRep() # does it have at least one het replicate?
+#   pool.changeFreqAndResample(freq)
 # Private methods:
 #   
 #=========================================================================
@@ -45,8 +46,12 @@ class Pool:
     def collapseReplicates(self):
         self.collapseReps(self.DNA)
         self.collapseReps(self.RNA)
+    def changeFreqAndResample(self,freq):
+        self.freq=freq
+        for r in self.DNA: r.resample(freq)
+        for r in self.RNA: r.resample(freq)
+                
 
-        
 
 
 
