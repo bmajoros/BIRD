@@ -59,9 +59,9 @@ class PooledVariant:
         for rep in reps:
             into.ref+=rep.ref
             into.alt+=rep.alt
-    def forceEqualFreqs(self,freq):
+    def forceEqualFreqs(self,p,q):
         for pool in self.pools:
-            pool.changeFreqAndResample(freq)
+            pool.changeFreqAndResample(p,q)
     def collapse(self):
         newVar=PooledVariant(self.ID)
         aveFreq=self.getAveFreq()

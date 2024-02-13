@@ -36,6 +36,7 @@ while(True):
     freqs=varC.getFreqs()
     if(len(freqs)!=1): raise Exception("Freqs array has unexpected size")
     maf=freqs[0]
+    #print(maf,threshold,maf<=threshold,sep="\t")
     if(maf>threshold): continue
     textP=varP.print()
     textC=varC.print()

@@ -7,14 +7,10 @@ functions {
 data {
    int<lower=0> N_POOLS;          // number of pools
    int<lower=0> MAX_DNA;          // maximum # of DNA reps
-   //int<lower=0> MAX_RNA;          // maximum # of RNA reps
    int<lower=0> N_DNA[N_POOLS];   // # DNA replicates
-   //int<lower=0> N_RNA[N_POOLS];   // # RNA replicates
    real<lower=0,upper=1> pop_freq[N_POOLS]; // Population alt allele freqs
    int<lower=0> a[N_POOLS,MAX_DNA]; // DNA alt read counts
    int<lower=0> b[N_POOLS,MAX_DNA]; // DNA ref read counts
-   //int<lower=0> k[N_POOLS,MAX_RNA]; // RNA alt read counts
-   //int<lower=0> m[N_POOLS,MAX_RNA]; // RNA ref read counts
 }
 
 parameters {
