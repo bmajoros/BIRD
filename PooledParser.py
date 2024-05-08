@@ -43,8 +43,8 @@ class PooledParser:
             for subtree in poolSubtrees:
                 pool=self.parsePool(subtree)
                 pooledVariant.addPool(pool)
-            keep=pooledVariant.dropHomozygousPools()
-            if(not keep): continue
+            #keep=pooledVariant.dropHomozygousPools()
+            #if(not keep): continue
             return pooledVariant
     def parsePool(self,subtree):
         if(subtree.numElements()<4):
