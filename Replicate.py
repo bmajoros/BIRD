@@ -26,7 +26,8 @@ class Replicate:
         self.ref=ref
         self.alt=alt
     def isHet(self):
-        return self.ref>0 and self.alt>0
+        #return self.ref>0 and self.alt>0
+        raise Exception("Replicate.isHet() is deprecated")
     def resample(self,p):
         n=self.ref+self.alt
         self.alt=np.random.binomial(n,p)

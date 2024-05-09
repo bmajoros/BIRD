@@ -17,8 +17,12 @@ from Replicate import Replicate
 #   freq : allele frequency in pool
 # Instance Methods:
 #   Pool(index,freq)
+#   bool isHetPool()
 #   bool hasHetDnaRep() # does it have at least one het replicate?
 #   pool.changeFreqAndResample(dna_freq,rna_frep)
+#   pool.collapseReplicates()
+#   pool.getPoolType() # 1=het, 2=homozygous ref, 3=homozygous alt
+#   bool pool.isCollapsed()
 # Private methods:
 #   
 #=========================================================================
@@ -29,14 +33,28 @@ class Pool:
         self.DNA=[]
         self.RNA=[]
         self.freq=freq
+    def isCollapsed(self):
+        return len(self.DNA)==1 and len(self.RNA)==1
+    def getPoolType(self):
+        if(not self.isCollapsed()):
+            raise Exception("Collapse reps before calling Pool.getPoolType()")
+        rep=self.DNA[0]
+        if(self.isHetPool()):
+            return 1 # het pool
+        if(rep.ref>0): return 2
+        if(rep.alt>0): return 3
+        raise Exception("Both alleles zero in Pool.getPoolType()")
     def addDnaRep(self,rep):
         self.DNA.append(rep)
     def addRnaRep(self,rep):
         self.RNA.append(rep)
+    def isHetPool(self):
+        return self.freq>0 and self.freq<1
     def hasHetDnaRep(self):
-        for x in self.DNA:
-            if(x.isHet()): return True
-        return False
+        raise Exception("Pool.hasHetDnaRep() is deprecated")
+        #for x in self.DNA:
+        #    if(x.isHet()): return True
+        #return False
     def collapseReps(self,reps):
         ref=sum([rep.ref for rep in reps])
         alt=sum([rep.alt for rep in reps])

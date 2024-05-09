@@ -25,6 +25,7 @@ import copy
 #   int[] getRnaReps()
 #   int[] getFreqs()
 #   newVar=collapse()
+#   
 #   var.forceEqualFreqs()
 #   bool dropHomozygousPools() # False if all pools were dropped
 #   string print()
@@ -86,7 +87,8 @@ class PooledVariant:
     def dropHomozygousPools(self):
         newPools=[]
         for pool in self.pools:
-            if(pool.hasHetDnaRep()): newPools.append(pool)
+            #if(pool.hasHetDnaRep()): newPools.append(pool)
+            if(pool.isHetPool()): newPools.append(pool)
         self.pools=newPools
         return len(newPools)>0
     def print(self):

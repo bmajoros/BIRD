@@ -18,9 +18,9 @@ data {
 }
 
 parameters {
-   real<lower=0> d; // Dispersion parameter for negative binomials
-   real<lower=0> r_ref; // ratio RNA/DNA for reference allele
-   real<lower=0> r_alt; // ratio RNA/DNA for alternate allele
+   real<lower=0.001,upper=1000> d; // Dispersion parameter for negative binomials
+   real<lower=0.001,upper=1000> r_ref; // ratio RNA/DNA for reference allele
+   real<lower=0.001,upper=1000> r_alt; // ratio RNA/DNA for alternate allele
 }
 
 transformed parameters {
