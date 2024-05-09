@@ -38,17 +38,15 @@ transformed parameters {
 model {
    // Parameters:
    s ~ gamma(1.1,3);       // variance parameter for prior on theta
-   //log(theta)/s ~ normal(0,1); // prior on theta
-   //target+=-log(theta)-log(s); // Jacobian for lognormal theta prior
    theta ~ lognormal(0,s);
    r_ref ~ lognormal(mu,sigma2);
    for(i in 1:N_POOLS) {
       if(POOL_TYPE[i]==1) { // HETEROZYGOUS POOL
          p[i] ~ betaModeConc(pop_freq[i],pop_conc);
          a[i] ~ binomial(a[i]+b[i],p[i]);
-         k[i] ~ binomial(k[i]+m[i],q[i]);
 	 m[i] ~ neg_binomial_2(b[i]*r_ref,1.0/d);
 	 k[i] ~ neg_binomial_2(a[i]*r_alt,1.0/d);
+	 q[i] ~ beta(k[i]+1,m[i]+1);
       }
       else if(POOL_TYPE[i]==2) { // REF POOL
 	 m[i] ~ neg_binomial_2(b[i]*r_ref,1.0/d);
