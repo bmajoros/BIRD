@@ -2,6 +2,13 @@ functions {
    // This function can be used via: p~betaModeConc(mode,concentration);
    real betaModeConc_lpdf(real parm,real m,real c) {
       return beta_lpdf(parm|m*(c-2)+1, (1-m)*(c-2)+1);
+   }
+   real NB_lpmf(int y,int x,real alpha,real beta,real theta) {
+      // This is a custom negative-binomial implementation that makes use
+      // of a prior with parameters alpha and beta.  Theta is RNA/DNA.
+      real numer=lgamma(y+x+alpha)+y*log(theta)+(x+alpha)*log(beta+1);
+      real denom=lgamma(y+1)+lgamma(x+alpha)+(y+x+alpha)*log(beta+theta+1);
+      return numer-denom;
    }}
 
 // TYPES OF POOLS: 1=HET, 2=REF, 3=ALT
