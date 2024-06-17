@@ -28,7 +28,7 @@ data {
    real<lower=0> beta;      // rate parameter of gamma prior in NB
 }
 parameters {
-   real<lower=0.000001> theta; // effect size (odds ratio)
+   real<lower=0.000001,upper=10000> theta; // effect size (odds ratio)
    real<lower=0.000001> s; // variance parameter of lognormal prior for theta
    real<lower=0.000001,upper=0.99999> p[N_POOLS]; // alt allele freq in DNA library
    real<lower=0.000001> r_ref; // ratio RNA/DNA for reference allele
@@ -38,6 +38,8 @@ transformed parameters {
    real r_alt=theta*r_ref; // ratio RNA/DNA for alternate allele
    for(i in 1:N_POOLS) {
       if(POOL_TYPE[i]==1) q[i]=theta*p[i]/(1.0-p[i]+theta*p[i]);
+      //else q[i]=0;
+      //if(is_nan(q[i])) print("NaN: theta=",theta," pi=",p[i]);
    }
 }
 model {
