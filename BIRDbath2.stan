@@ -47,16 +47,19 @@ model {
    r_ref ~ lognormal(mu,sigma2);
    for(i in 1:N_POOLS) {
       if(POOL_TYPE[i]==1) { // HETEROZYGOUS POOL
+         //print("HET POOL");
          p[i] ~ betaModeConc(pop_freq[i],pop_conc);
-         a[i] ~ binomial(a[i]+b[i],p[i]);
-	 k[i] ~ NB(a[i],alpha,beta,r_alt);
-	 m[i] ~ binomial(k[i]+m[i],q[i]);
-	 m[i] ~ NB(b[i],alpha,beta,r_ref);
+         target += binomial_lpmf(a[i]|a[i]+b[i],p[i]);
+	 target += 1.0/3.0 * NB_lpmf(k[i]|a[i],alpha,beta,r_alt);
+	 target += 1.0/3.0 * binomial_lpmf(k[i]|k[i]+m[i],q[i]);
+	 target += 1.0/3.0 * NB_lpmf(m[i]|b[i],alpha,beta,r_ref);
       }
       else if(POOL_TYPE[i]==2) { // REF POOL
+         //print("REF POOL");
 	 m[i] ~ NB(b[i],alpha,beta,r_ref);
       }
       else if(POOL_TYPE[i]==3) { // ALT POOL
+         //print("ALT POOL");
 	 k[i] ~ NB(a[i],alpha,beta,r_alt);
       }
    }

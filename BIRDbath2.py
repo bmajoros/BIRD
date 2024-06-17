@@ -24,7 +24,10 @@ from Stan import Stan
 
 DEBUG=False
 WARMUP=1000
-ALPHA=0.05
+MU=1
+SIGMA2=100
+ALPHA=0.0000000001
+BETA=0.0000000001
 #POP_CONC=1500 ### THIS NEEDS TO BE ESTIMATED FROM EACH DATA SET!
 STDERR=TempFilename.generate(".stderr")
 INPUT_FILE=TempFilename.generate(".staninputs")
@@ -55,67 +58,40 @@ def writeToFile(fields,OUT):
 def writeInitializationFile(stan,variant,filename):
     OUT=open(filename,"wt")
     print("theta <- 1",file=OUT)
+    print("r_ref <- 1",file=OUT)
+    print("s <- 1",file=OUT)
     freqs=variant.getFreqs()
     numPools=variant.numPools()
     stan.writeOneDimArray("p",freqs,numPools,OUT)
-    maxRnaReps=variant.getMaxRnaReps()
-    #qiInit=[freqs]*maxRnaReps
-    qiInit=makeQiArray(freqs,maxRnaReps)
-    #print("pinit=",freqs)
-    #print("qiInit=",qiInit)
-    #print("numPools=",numPools,", maxRnaReps=",maxRnaReps)
-    stan.writeTwoDimArray("qi",qiInit,numPools,maxRnaReps,OUT)
-    print("c <- 100",file=OUT)
-    print("s <- 1",file=OUT)
     OUT.close()
 
-def makeQiArray(freqs,maxRnaReps):
-    array=[]
-    for f in freqs:
-        array.append([f]*maxRnaReps)
-    return array
+def getPoolTypes(variant):
+    
+    return types
     
 def writeInputsFile(stan,variant,filename):
     OUT=open(filename,"wt")
     numPools=variant.numPools()
     print("N_POOLS <-",numPools,file=OUT)
-    maxDnaReps=variant.getMaxDnaReps()
-    maxRnaReps=variant.getMaxRnaReps()
-    print("MAX_DNA <- ",maxDnaReps,file=OUT)
-    print("MAX_RNA <- ",maxRnaReps,file=OUT)
-    print("pop_conc <- ",POP_CONC,file=OUT)
+    poolTypes=[pool.getPoolType() for pool in variant.pools]
+    stan.writeOneDimArray("POOL_TYPE",poolTypes,len(poolTypes),OUT)
     freqs=variant.getFreqs()
     stan.writeOneDimArray("pop_freq",freqs,numPools,OUT)
-    dnaReps=variant.getDnaReps()
-    rnaReps=variant.getRnaReps()
-    stan.writeOneDimArray("N_DNA",dnaReps,numPools,OUT)
-    stan.writeOneDimArray("N_RNA",rnaReps,numPools,OUT)
-    dnaAltCounts=[[rep.alt for rep in pool.DNA] for pool in variant.pools]
-    dnaRefCounts=[[rep.ref for rep in pool.DNA] for pool in variant.pools]
-    rnaAltCounts=[[rep.alt for rep in pool.RNA] for pool in variant.pools]
-    rnaRefCounts=[[rep.ref for rep in pool.RNA] for pool in variant.pools]
-    dnaAltCounts=expandArray(dnaAltCounts,maxDnaReps)
-    dnaRefCounts=expandArray(dnaRefCounts,maxDnaReps)
-    rnaAltCounts=expandArray(rnaAltCounts,maxRnaReps)
-    rnaRefCounts=expandArray(rnaRefCounts,maxRnaReps)
-    stan.writeTwoDimArray("a",dnaAltCounts,numPools,maxDnaReps,OUT)
-    stan.writeTwoDimArray("b",dnaRefCounts,numPools,maxDnaReps,OUT)
-    stan.writeTwoDimArray("k",rnaAltCounts,numPools,maxRnaReps,OUT)
-    stan.writeTwoDimArray("m",rnaRefCounts,numPools,maxRnaReps,OUT)
+    print("pop_conc <- ",POP_CONC,file=OUT)
+    dnaAltCounts=[pool.DNA[0].alt for pool in variant.pools]
+    dnaRefCounts=[pool.DNA[0].ref for pool in variant.pools]
+    rnaAltCounts=[pool.RNA[0].alt for pool in variant.pools]
+    rnaRefCounts=[pool.RNA[0].ref for pool in variant.pools]
+    stan.writeOneDimArray("a",dnaAltCounts,numPools,OUT)
+    stan.writeOneDimArray("b",dnaRefCounts,numPools,OUT)
+    stan.writeOneDimArray("k",rnaAltCounts,numPools,OUT)
+    stan.writeOneDimArray("m",rnaRefCounts,numPools,OUT)
+    print("mu <-",MU,file=OUT)
+    print("sigma2 <-",SIGMA2,file=OUT)
+    print("alpha <-",ALPHA,file=OUT)
+    print("beta <-",BETA,file=OUT)
     OUT.close()
 
-def expandArray(array,desiredSize):
-    newArray=[]
-    numPools=len(array)
-    for i in range(numPools):
-        oldPool=array[i]
-        newPool=[x for x in oldPool]
-        oldPoolSize=len(oldPool)
-        for j in range(oldPoolSize,desiredSize):
-            newPool.append(0)
-        newArray.append(newPool)
-    return newArray
-    
 def runVariant(stan,variant,numSamples,outfile):
     # Write inputs file for STAN
     writeInputsFile(stan,variant,INPUT_FILE)
@@ -134,7 +110,7 @@ def runVariant(stan,variant,numSamples,outfile):
     return (thetas,parser)
 
 def summarize(parser,thetas,ID,minRight):
-    (median,CI_left,CI_right)=parser.getMedianAndCI(1.0-ALPHA,"theta")
+    (median,CI_left,CI_right)=parser.getMedianAndCI(0.95,"theta")
     maxLeft=1.0/minRight
     leftP=parser.getLeftTail("theta",maxLeft)
     rightP=parser.getRightTail("theta",minRight)
