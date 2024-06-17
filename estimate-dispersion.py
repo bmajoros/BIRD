@@ -26,7 +26,8 @@ DEBUG=False
 MU=1 # mean of lognormal prior on ratio RNA/DNA
 SIGMA=3 # std dev of lognormal prior on ratio RNA/DNA
 WARMUP=1000
-ALPHA=0.05
+ALPHA=0.0000000001
+BETA=0.0000000001
 STDERR=TempFilename.generate(".stderr")
 INPUT_FILE=TempFilename.generate(".staninputs")
 INIT_FILE=TempFilename.generate(".staninit")
@@ -56,7 +57,10 @@ def writeToFile(fields,OUT):
 def writeInitializationFile(stan,variant,filename):
     OUT=open(filename,"wt")
     numPools=variant.numPools()
-    print("d <- 100",file=OUT)
+    #print("d <- 100",file=OUT)
+    print("alpha <- 0.001",file=OUT)
+    print("beta <- 0.001",file=OUT)
+    #print("d <- 100",file=OUT)
     print("r_ref <- 1",file=OUT)
     print("r_alt <- 1",file=OUT)
     OUT.close()
@@ -70,6 +74,8 @@ def writePoolTypes(stan,variant,OUT):
 def writeInputsFile(stan,variant,filename):
     OUT=open(filename,"wt")
     numPools=variant.numPools()
+    print("alpha <-",ALPHA,file=OUT)
+    print("beta <-",BETA,file=OUT)
     print("N_POOLS <-",numPools,file=OUT)
     print("mu <-",MU,file=OUT)
     print("sigma2 <-",SIGMA*SIGMA,file=OUT)
@@ -98,8 +104,9 @@ def runVariant(stan,variant,numSamples,outfile):
 
     # Parse MCMC output
     parser=StanParser(OUTPUT_TEMP)
-    conc=parser.getVariable("d")    
-    return (conc,parser)
+    alpha=parser.getVariable("alpha")    
+    beta=parser.getVariable("beta")    
+    return (alpha,beta,parser)
 
 #def summarize(parser,conc,ID,minRight):
 #    (median,CI_left,CI_right)=parser.getMedianAndCI(1.0-ALPHA,"conc")
@@ -138,10 +145,11 @@ while(True):
         continue
     elif(variantIndex>lastIndex): break
     variant.collapseReplicates()
-    (dispersion,stanParser)=runVariant(stan,variant,numSamples,outfile)
-    if(dispersion is None): continue
-    (median,CI_left,CI_right)=stanParser.getMedianAndCI(1.0-ALPHA,"d")
-    print(variant.ID,median,sep="\t")
+    (alpha,beta,stanParser)=runVariant(stan,variant,numSamples,outfile)
+    if(alpha is None): continue
+    (medianAlpha,CI_left,CI_right)=stanParser.getMedianAndCI(0.95,"alpha")
+    (medianBeta,CI_left,CI_right)=stanParser.getMedianAndCI(0.95,"beta")
+    print(variant.ID,medianAlpha,medianBeta,sep="\t")
     variantIndex+=1
 os.remove(STDERR)
 os.remove(INPUT_FILE)
