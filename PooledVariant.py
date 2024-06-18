@@ -28,6 +28,7 @@ import copy
 #   
 #   var.forceEqualFreqs()
 #   bool dropHomozygousPools() # False if all pools were dropped
+#   int numHomozygousPools()
 #   string print()
 # Class Methods:
 #   
@@ -84,6 +85,11 @@ class PooledVariant:
             new.index=i
     def collapseReplicates(self):
         for pool in self.pools: pool.collapseReplicates()
+    def numHomozygousPools(self):
+        n=0
+        for pool in self.pools:
+            if(not pool.isHetPool()): n+=1
+        return n
     def dropHomozygousPools(self):
         newPools=[]
         for pool in self.pools:
