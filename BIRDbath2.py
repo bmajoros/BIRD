@@ -55,12 +55,17 @@ def writeToFile(fields,OUT):
         if(i<numFields-1): print("\t",end="",file=OUT)
     print(file=OUT)
 
+def fixP(p):
+    newP=[x if x>0 and x<1 else 0.5 for x in p]
+    return newP
+    
 def writeInitializationFile(stan,variant,filename):
     OUT=open(filename,"wt")
     print("theta <- 1",file=OUT)
     print("r_ref <- 1",file=OUT)
     print("s <- 1",file=OUT)
     freqs=variant.getFreqs()
+    freqs=fixP(freqs)
     numPools=variant.numPools()
     stan.writeOneDimArray("p",freqs,numPools,OUT)
     OUT.close()
@@ -154,8 +159,8 @@ while(True):
         variantIndex+=1
         continue
     elif(variantIndex>lastIndex): break
-    keep=variant.dropHomozygousPools()
-    if(not keep): continue
+    #keep=variant.dropHomozygousPools()
+    #if(not keep): continue
     (thetas,stanParser)=runVariant(stan,variant,numSamples,outfile)
     if(thetas is None): continue
     summarize(stanParser,thetas,variant.ID,minEffect)
