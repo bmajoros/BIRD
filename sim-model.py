@@ -113,8 +113,10 @@ for i in range(NUM_VARIANTS):
         TOTAL_RNA=int(TOTAL_DNA*(r_ref*(1-localFreq) +r_alt*localFreq))
         dnaRef=None;dnaAlt=None;rnaRef=None;rnaAlt=None
         if(localFreq>0 and localFreq<1): # Het pool
-            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,localFreq)
-            (rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,localFreq)
+            p=localFreq
+            q=theta*p/(1-p+theta*p)
+            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,p)
+            (rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,q)
         elif(localFreq==0): # Homozygous reference
             TOTAL_RNA=sampleNB(TOTAL_DNA,r_ref)
             dnaRef=TOTAL_DNA; dnaAlt=0
