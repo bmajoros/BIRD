@@ -62,6 +62,19 @@ def splitIntoPools(genotypes,NUM_POOLS,indivPerPool):
         pools.append(pool)
     return pools
 
+def sampleBinomial(n,p):
+    altCount=np.random.binomial(n,p)
+    refCount=n-altCount
+    return (refCount,altCount)
+
+def sampleNB(TOTAL_DNA,ratio):
+    ALPHA=1e-10
+    BETA=1e-10
+    p=(BETA+1)/(BETA+ratio+1)
+    r=TOTAL_DNA+ALPHA
+    TOTAL_RNA=np.random.negative_binomial(r,p)
+    return TOTAL_RNA
+
 #=========================================================================
 # main()
 #=========================================================================
@@ -74,23 +87,46 @@ NUM_POOLS=int(NUM_POOLS)
 if(NUM_INDIV % NUM_POOLS != 0):
     raise Exception("#indiv must be divisib by #pools")
 indivPerPool=int(NUM_INDIV/NUM_POOLS)
-TOTAL_COUNT=int(TOTAL_COUNT)
+TOTAL_DNA=int(TOTAL_COUNT)
 
 for i in range(NUM_VARIANTS):
+    print("(variant (id variant",(i+1),")",sep="")
     theta=np.random.lognormal(0,1)
     r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
     while(r_ref==0): r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
     r_alt=r_ref*theta
+    print("\t(theta ",round(theta,3),")",sep="")
+    print("\t(r_ref ",round(r_ref,3),")",sep="")
+    print("\t(r_alt ",round(r_alt,3),")",sep="")
     popFreq=None; genotypes=None
     while(True):
         popFreq=np.random.uniform(0,0.5)
         genotypes=simGenotypes(NUM_INDIV,popFreq)
         if(hasBothAlleles(genotypes)): break
     pools=splitIntoPools(genotypes,NUM_POOLS,indivPerPool)
+    poolID=0
     for pool in pools:
+        poolID+=1
         (numRef,numAlt)=countAlleles(pool)
         localFreq=float(numAlt)/float(numAlt+numRef)
-        print(localFreq)
+        print("\t(pool ",poolID," (freq ",localFreq,")",sep="")
+        TOTAL_RNA=int(TOTAL_DNA*(r_ref*(1-localFreq) +r_alt*localFreq))
+        dnaRef=None;dnaAlt=None;rnaRef=None;rnaAlt=None
+        if(localFreq>0 and localFreq<1): # Het pool
+            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,localFreq)
+            (rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,localFreq)
+        elif(localFreq==0): # Homozygous reference
+            TOTAL_RNA=sampleNB(TOTAL_DNA,r_ref)
+            dnaRef=TOTAL_DNA; dnaAlt=0
+            rnaRef=TOTAL_RNA; rnaAlt=0
+        else: # Homozygous alternate
+            TOTAL_RNA=sampleNB(TOTAL_DNA,r_alt)
+            dnaAlt=TOTAL_DNA; dnaRef=0
+            rnaAlt=TOTAL_RNA; rnaRef=0
+        print("\t\t(DNA (ref ",dnaRef,") (alt ",dnaAlt,"))",sep="")
+        print("\t\t(RNA (ref ",rnaRef,") (alt ",rnaAlt,"))",sep="")
+        print("\t)")
+    print(")")
     
 #(variant (id chr1:100038008:T:C)
 #        (pool 1
