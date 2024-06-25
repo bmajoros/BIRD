@@ -19,11 +19,11 @@ data {
 }
 
 parameters {
-   real<lower=0> theta; // effect size (odds ratio)
+   real<lower=0.000001,upper=10000> theta; // effect size (odds ratio)
    real<lower=2> c; // concentration parameter of beta prior for qi
-   real<lower=0> s; // variance parameter of lognormal prior for theta
-   real<lower=0,upper=1> p[N_POOLS]; // alt allele freq in DNA library
-   real<lower=0,upper=1> qi[N_POOLS,MAX_RNA]; // alt allele freqs in RNA reps
+   real<lower=0.000001> s; // variance parameter of lognormal prior for theta
+   real<lower=0.000001,upper=0.999999> p[N_POOLS]; // alt allele freq in DNA library
+   real<lower=0.000001,upper=0.999999> qi[N_POOLS,MAX_RNA]; // alt allele freqs in RNA reps
 }
 
 transformed parameters {

@@ -70,10 +70,6 @@ def writeInitializationFile(stan,variant,filename):
     stan.writeOneDimArray("p",freqs,numPools,OUT)
     OUT.close()
 
-def getPoolTypes(variant):
-    
-    return types
-    
 def writeInputsFile(stan,variant,filename):
     OUT=open(filename,"wt")
     numPools=variant.numPools()
@@ -120,8 +116,11 @@ def summarize(parser,thetas,ID,minRight):
     leftP=parser.getLeftTail("theta",maxLeft)
     rightP=parser.getRightTail("theta",minRight)
     Preg=leftP if leftP>rightP else rightP
+    medianRatio=parser.getMedianAndCI(0.95,"r_ref")[0]
+    #print(ID,round(median,3),round(CI_left,3),round(CI_right,3),
+    #      round(Preg,3),sep="\t")
     print(ID,round(median,3),round(CI_left,3),round(CI_right,3),
-          round(Preg,3),sep="\t")
+          round(Preg,3),round(medianRatio,3),sep="\t")
 
 #=========================================================================
 # main()

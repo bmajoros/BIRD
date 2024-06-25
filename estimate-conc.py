@@ -164,6 +164,8 @@ while(True):
         variantIndex+=1
         continue
     elif(variantIndex>lastIndex): break
+    keep=variant.dropHomozygousPools()
+    if(not keep): continue
     (conc,stanParser)=runVariant(stan,variant,numSamples,outfile)
     if(conc is None): continue
     #summarize(stanParser,thetas,variant.ID,minEffect)
