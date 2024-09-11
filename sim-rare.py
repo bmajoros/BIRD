@@ -14,6 +14,7 @@ import sys
 import ProgramName
 import numpy as np
 
+MAX_FREQ=0.01
 RATIO_MEAN=5
 RATIO_SD=1
 
