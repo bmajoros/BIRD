@@ -100,13 +100,15 @@ for i in range(NUM_VARIANTS):
     r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
     while(r_ref==0): r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
     r_alt=r_ref*theta
-    print(variantID,round(theta,3),sep="\t",file=OUT_TRUTH)
+    print(variantID,round(theta,3),
+          round(r_ref,3),round(r_alt,3),
+          sep="\t",file=OUT_TRUTH)
     #print("\t(theta ",round(theta,3),")",sep="",file=OUT_DATA)
     #print("\t(r_ref ",round(r_ref,3),")",sep="",file=OUT_DATA)
     #print("\t(r_alt ",round(r_alt,3),")",sep="",file=OUT_DATA)
     popFreq=None; genotypes=None
     while(True):
-        popFreq=np.random.uniform(0,0.5)
+        popFreq=np.random.uniform(0,MAX_FREQ)
         genotypes=simGenotypes(NUM_INDIV,popFreq)
         if(hasBothAlleles(genotypes)): break
     pools=splitIntoPools(genotypes,NUM_POOLS,indivPerPool)
