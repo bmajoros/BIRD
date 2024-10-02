@@ -69,8 +69,8 @@ def sampleBinomial(n,p):
     return (refCount,altCount)
 
 def sampleNB(TOTAL_DNA,ratio):
-    ALPHA=1e-10
-    BETA=1e-10
+    ALPHA=1 # 1e-10
+    BETA=0.05 # 1e-10
     p=(BETA+1)/(BETA+ratio+1)
     r=TOTAL_DNA+ALPHA
     TOTAL_RNA=np.random.negative_binomial(r,p)

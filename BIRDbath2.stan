@@ -32,10 +32,12 @@ parameters {
    real<lower=0.000001> s; // variance parameter of lognormal prior for theta
    real<lower=0.000001,upper=0.99999> p[N_POOLS]; // alt allele freq in DNA library
    real<lower=0.000001> r_ref; // ratio RNA/DNA for reference allele
+   //real<lower=0.000001> r_alt; // ratio RNA/DNA for alternate allele
 }
 transformed parameters {
    real q[N_POOLS]; // alt allele freq in RNA
    real r_alt=theta*r_ref; // ratio RNA/DNA for alternate allele
+   //real theta=r_alt/r_ref;
    for(i in 1:N_POOLS) {
       if(POOL_TYPE[i]==1) q[i]=theta*p[i]/(1.0-p[i]+theta*p[i]);
       //else q[i]=0;
@@ -47,6 +49,7 @@ model {
    s ~ gamma(1.1,3);       // variance parameter for prior on theta
    theta ~ lognormal(0,s);
    r_ref ~ lognormal(mu,sigma2);
+   //r_alt ~ lognormal(mu,sigma2);
    for(i in 1:N_POOLS) {
       if(POOL_TYPE[i]==1) { // HETEROZYGOUS POOL
          //print("HET POOL");
