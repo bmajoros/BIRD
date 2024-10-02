@@ -22,7 +22,7 @@ from StanParser import StanParser
 from PooledParser import PooledParser
 from Stan import Stan
 
-DEBUG=True
+DEBUG=False
 WARMUP=1000
 MU=1
 SIGMA2=1 # 100
@@ -129,9 +129,7 @@ stan=Stan(model)
 #summarize(stanParser,thetas,variant.ID,minEffect)
 if(THETA is not None):
     for i in range(len(thetas)):
-        print(thetas[i],file=THETA,end="")
-        if(i<len(thetas)): print("\t",file=THETA,end="")
-    print(file=THETA)
+        print(thetas[i],file=THETA)
 os.remove(STDERR)
 os.remove(INPUT_FILE)
 if(stanFile is None):
