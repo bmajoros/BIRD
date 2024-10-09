@@ -56,17 +56,19 @@ def writeInitializationFile(stan,filename):
     print("p <- 0.5",file=OUT)
     OUT.close()
 
-def writeInputsFile(stan,dna_ref,dna_alt,rna_ref,rna_alt,filename):
+def writeInputsFile(stan,dna_ref,dna_alt,rna_ref,rna_alt,b1,b2,filename):
     OUT=open(filename,"wt")
     print("dna_ref <-",dna_ref,file=OUT)
     print("dna_alt <-",dna_alt,file=OUT)
     print("rna_ref <-",rna_ref,file=OUT)
     print("rna_alt <-",rna_alt,file=OUT)
+    print("beta1 <-",b1,file=OUT)
+    print("beta2 <-",b2,file=OUT)
     OUT.close()
 
-def runVariant(stan,dna_ref,dna_alt,rna_ref,rna_alt,numSamples):
+def runVariant(stan,dna_ref,dna_alt,rna_ref,rna_alt,b1,b2,numSamples):
     # Write inputs file for STAN
-    writeInputsFile(stan,dna_ref,dna_alt,rna_ref,rna_alt,INPUT_FILE)
+    writeInputsFile(stan,dna_ref,dna_alt,rna_ref,rna_alt,b1,b2,INPUT_FILE)
     writeInitializationFile(stan,INIT_FILE)
 
     # Run STAN model
@@ -97,9 +99,9 @@ def summarize(parser,thetas,ID,minRight):
 # main()
 #=========================================================================
 (options,args)=getopt.getopt(sys.argv[1:],"s:t:")
-if(len(args)!=7):
-    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <#MCMC-samples> <dna_ref> <dna_alt> <rna_ref> <rna_alt>\n   -s = save raw STAN file\n   -t = save theta samples\n   min-effect (lambda) must be >= 1\n")
-(model,minEffect,numSamples,dna_ref,dna_alt,rna_ref,rna_alt)=args
+if(len(args)!=9):
+    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <#MCMC-samples> <dna_ref> <dna_alt> <rna_ref> <rna_alt> <beta-parm1> <beta-parm2>\n   -s = save raw STAN file\n   -t = save theta samples\n   min-effect (lambda) must be >= 1\n")
+(model,minEffect,numSamples,dna_ref,dna_alt,rna_ref,rna_alt,b1,b2)=args
 stanFile=None
 thetaFile=None
 for pair in options:
@@ -109,12 +111,15 @@ for pair in options:
 minEffect=float(minEffect)
 dna_ref=int(dna_ref); dna_alt=int(dna_alt)
 rna_ref=int(rna_ref); rna_alt=int(rna_alt)
+b1=float(b1)
+b2=float(b2)
 if(minEffect<1): raise Exception("Min-effect must be >= 1")
 THETA=None
 if(thetaFile is not None): THETA=open(thetaFile,"wt")
 stan=Stan(model)
 
-(thetas,stanParser)=runVariant(stan,dna_ref,dna_alt,rna_ref,rna_alt,numSamples)
+(thetas,stanParser)=runVariant(stan,dna_ref,dna_alt,rna_ref,rna_alt,
+                               b1,b2,numSamples)
 #summarize(stanParser,thetas,variant.ID,minEffect)
 if(THETA is not None):
     for i in range(len(thetas)):

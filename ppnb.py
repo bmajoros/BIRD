@@ -24,10 +24,10 @@ from Stan import Stan
 
 DEBUG=False
 WARMUP=1000
-MU=1
-SIGMA2=1 # 100
-ALPHA=1 # 0.0000000001
-BETA=0.05 # 0.0000000001
+MU=1 # 1
+SIGMA2=100 # 1
+ALPHA=1 # 1
+BETA=0.05 # 0.05
 STDERR=TempFilename.generate(".stderr")
 INPUT_FILE=TempFilename.generate(".staninputs")
 INIT_FILE=TempFilename.generate(".staninit")

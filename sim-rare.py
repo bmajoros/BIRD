@@ -15,7 +15,7 @@ import ProgramName
 import numpy as np
 
 MAX_FREQ=0.01
-RATIO_MEAN=5
+RATIO_MEAN=1
 RATIO_SD=1
 
 #def sampleBeta(k,m,mode,conc):
@@ -68,13 +68,14 @@ def sampleBinomial(n,p):
     refCount=n-altCount
     return (refCount,altCount)
 
-def sampleNB(TOTAL_DNA,ratio):
+def sampleNB(X,ratio):
     ALPHA=1 # 1e-10
     BETA=0.05 # 1e-10
     p=(BETA+1)/(BETA+ratio+1)
-    r=TOTAL_DNA+ALPHA
-    TOTAL_RNA=np.random.negative_binomial(r,p)
-    return TOTAL_RNA
+    #print("p=",p)
+    r=X+ALPHA
+    Y=np.random.negative_binomial(r,p)
+    return Y
 
 #=========================================================================
 # main()
@@ -97,8 +98,8 @@ for i in range(NUM_VARIANTS):
     variantID="variant"+str(i+1)
     print("(variant (id ",variantID,")",sep="",file=OUT_DATA)
     theta=np.random.lognormal(0,1)
-    r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
-    while(r_ref==0): r_ref=np.random.normal(RATIO_MEAN,RATIO_SD)
+    r_ref=np.random.lognormal(RATIO_MEAN,RATIO_SD)
+    #while(r_ref<=0): r_ref=np.random.lognormal(RATIO_MEAN,RATIO_SD)
     r_alt=r_ref*theta
     print(variantID,round(theta,3),
           round(r_ref,3),round(r_alt,3),
@@ -118,21 +119,23 @@ for i in range(NUM_VARIANTS):
         (numRef,numAlt)=countAlleles(pool)
         localFreq=float(numAlt)/float(numAlt+numRef)
         print("\t(pool ",poolID," (freq ",localFreq,")",sep="",file=OUT_DATA)
-        TOTAL_RNA=int(TOTAL_DNA*(r_ref*(1-localFreq) +r_alt*localFreq))
+        #TOTAL_RNA=int(TOTAL_DNA*(r_ref*(1-localFreq) +r_alt*localFreq))
         dnaRef=None;dnaAlt=None;rnaRef=None;rnaAlt=None
         if(localFreq>0 and localFreq<1): # Het pool
-            p=localFreq
-            q=theta*p/(1-p+theta*p)
-            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,p)
-            (rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,q)
+            #p=localFreq
+            #q=theta*p/(1-p+theta*p)
+            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,localFreq)
+            #(rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,q)
+            rnaRef=sampleNB(dnaRef,r_ref)
+            rnaAlt=sampleNB(dnaAlt,r_alt)
         elif(localFreq==0): # Homozygous reference
-            TOTAL_RNA=sampleNB(TOTAL_DNA,r_ref)
             dnaRef=TOTAL_DNA; dnaAlt=0
-            rnaRef=TOTAL_RNA; rnaAlt=0
+            rnaRef=sampleNB(dnaRef,r_ref)
+            rnaAlt=0
         else: # Homozygous alternate
-            TOTAL_RNA=sampleNB(TOTAL_DNA,r_alt)
             dnaAlt=TOTAL_DNA; dnaRef=0
-            rnaAlt=TOTAL_RNA; rnaRef=0
+            rnaAlt=sampleNB(dnaAlt,r_alt)
+            rnaRef=0
         print("\t\t(DNA (ref ",dnaRef,") (alt ",dnaAlt,"))",sep="",
               file=OUT_DATA)
         print("\t\t(RNA (ref ",rnaRef,") (alt ",rnaAlt,"))",sep="",
