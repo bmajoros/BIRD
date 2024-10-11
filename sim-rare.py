@@ -99,14 +99,10 @@ for i in range(NUM_VARIANTS):
     print("(variant (id ",variantID,")",sep="",file=OUT_DATA)
     theta=np.random.lognormal(0,1)
     r_ref=np.random.lognormal(RATIO_MEAN,RATIO_SD)
-    #while(r_ref<=0): r_ref=np.random.lognormal(RATIO_MEAN,RATIO_SD)
     r_alt=r_ref*theta
     print(variantID,round(theta,3),
           round(r_ref,3),round(r_alt,3),
           sep="\t",file=OUT_TRUTH)
-    #print("\t(theta ",round(theta,3),")",sep="",file=OUT_DATA)
-    #print("\t(r_ref ",round(r_ref,3),")",sep="",file=OUT_DATA)
-    #print("\t(r_alt ",round(r_alt,3),")",sep="",file=OUT_DATA)
     popFreq=None; genotypes=None
     while(True):
         popFreq=np.random.uniform(0,MAX_FREQ)
@@ -119,13 +115,9 @@ for i in range(NUM_VARIANTS):
         (numRef,numAlt)=countAlleles(pool)
         localFreq=float(numAlt)/float(numAlt+numRef)
         print("\t(pool ",poolID," (freq ",localFreq,")",sep="",file=OUT_DATA)
-        #TOTAL_RNA=int(TOTAL_DNA*(r_ref*(1-localFreq) +r_alt*localFreq))
         dnaRef=None;dnaAlt=None;rnaRef=None;rnaAlt=None
         if(localFreq>0 and localFreq<1): # Het pool
-            #p=localFreq
-            #q=theta*p/(1-p+theta*p)
             (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,localFreq)
-            #(rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,q)
             rnaRef=sampleNB(dnaRef,r_ref)
             rnaAlt=sampleNB(dnaAlt,r_alt)
         elif(localFreq==0): # Homozygous reference
