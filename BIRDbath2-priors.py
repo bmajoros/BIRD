@@ -50,48 +50,29 @@ def writeToFile(fields,OUT):
         if(i<numFields-1): print("\t",end="",file=OUT)
     print(file=OUT)
 
-def fixP(p):
-    newP=[x if x>0 and x<1 else 0.5 for x in p]
-    return newP
+def writeInitializationFile(stan,numVariants,filename):
+    OUT=open(filename,"wt")
+    print("mu <- 1",file=OUT)
+    print("sigma2 <- 1",file=OUT)
+    print("alpha <- 1",file=OUT)
+    print("beta <- 1",file=OUT)
+    initArray=[1]*numVariants
+    stan.writeOneDimArray("r_ref",initArray,numVariants,OUT)
+    stan.writeOneDimArray("lambda",initArray,numVariants,OUT)
+    OUT.close()
     
-def writeInitializationFile(stan,variant,filename):
+def writeInputsFile(stan,b,m,filename):
     OUT=open(filename,"wt")
-    print("theta <- 1",file=OUT)
-    print("r_ref <- 1",file=OUT)
-    print("s <- 1",file=OUT)
-    freqs=variant.getFreqs()
-    freqs=fixP(freqs)
-    numPools=variant.numPools()
-    stan.writeOneDimArray("p",freqs,numPools,OUT)
+    numVariants=len(b)
+    print("N_VARIANTS <-",numVariants,file=OUT)
+    stan.writeOneDimArray("b",b,numVariants,OUT)
+    stan.writeOneDimArray("m",m,numVariants,OUT)
     OUT.close()
 
-def writeInputsFile(stan,variant,filename):
-    OUT=open(filename,"wt")
-    numPools=variant.numPools()
-    print("N_POOLS <-",numPools,file=OUT)
-    poolTypes=[pool.getPoolType() for pool in variant.pools]
-    stan.writeOneDimArray("POOL_TYPE",poolTypes,len(poolTypes),OUT)
-    freqs=variant.getFreqs()
-    stan.writeOneDimArray("pop_freq",freqs,numPools,OUT)
-    print("pop_conc <- ",POP_CONC,file=OUT)
-    dnaAltCounts=[pool.DNA[0].alt for pool in variant.pools]
-    dnaRefCounts=[pool.DNA[0].ref for pool in variant.pools]
-    rnaAltCounts=[pool.RNA[0].alt for pool in variant.pools]
-    rnaRefCounts=[pool.RNA[0].ref for pool in variant.pools]
-    stan.writeOneDimArray("a",dnaAltCounts,numPools,OUT)
-    stan.writeOneDimArray("b",dnaRefCounts,numPools,OUT)
-    stan.writeOneDimArray("k",rnaAltCounts,numPools,OUT)
-    stan.writeOneDimArray("m",rnaRefCounts,numPools,OUT)
-    print("mu <-",MU,file=OUT)
-    print("sigma2 <-",SIGMA2,file=OUT)
-    print("alpha <-",ALPHA,file=OUT)
-    print("beta <-",BETA,file=OUT)
-    OUT.close()
-
-def runVariant(stan,variant,numSamples,outfile):
+def run(stan,b,m,numSamples):
     # Write inputs file for STAN
-    writeInputsFile(stan,variant,INPUT_FILE)
-    writeInitializationFile(stan,variant,INIT_FILE)
+    writeInputsFile(stan,b,m,INPUT_FILE)
+    writeInitializationFile(stan,len(b),INIT_FILE)
 
     # Run STAN model
     cmd=stan.getCmd(WARMUP,numSamples,INPUT_FILE,OUTPUT_TEMP,STDERR,INIT_FILE)
@@ -102,49 +83,45 @@ def runVariant(stan,variant,numSamples,outfile):
 
     # Parse MCMC output
     parser=StanParser(OUTPUT_TEMP)
-    thetas=parser.getVariable("theta")    
-    return (thetas,parser)
+    return parser
 
-def summarize(parser,thetas,ID,minRight):
-    (median,CI_left,CI_right)=parser.getMedianAndCI(0.95,"theta")
-    maxLeft=1.0/minRight
-    leftP=parser.getLeftTail("theta",maxLeft)
-    rightP=parser.getRightTail("theta",minRight)
-    Preg=leftP if leftP>rightP else rightP
-    medianRatio=parser.getMedianAndCI(0.95,"r_ref")[0]
-    #print(ID,round(median,3),round(CI_left,3),round(CI_right,3),
-    #      round(Preg,3),sep="\t")
-    print(ID,round(median,3),round(CI_left,3),round(CI_right,3),
-          round(Preg,3),round(medianRatio,3),sep="\t")
+def summarize(parser):
+    (mu,mean,SD,min,max)=parser.getSummary("mu")
+    (sigma2,mean,SD,min,max)=parser.getSummary("sigma2")
+    (alpha,mean,SD,min,max)=parser.getSummary("alpha")
+    (beta,mean,SD,min,max)=parser.getSummary("beta")
+    print("mu=",round(mu,3),"sigma2=",round(sigma2,3),
+          "alpha=",round(alpha,3),"beta=",round(beta,3),sep="\t")
 
+def appendCounts(variant,dnaRefList,rnaRefList):
+    newVar=variant.collapse()
+    pool=newVar.pools[0]
+    totalDnaRef=sum([rep.ref for rep in pool.DNA])
+    totalRnaRef=sum([rep.ref for rep in pool.RNA])
+    dnaRefList.append(totalDnaRef)
+    rnaRefList.append(totalRnaRef)
+    
 #=========================================================================
 # main()
 #=========================================================================
 (options,args)=getopt.getopt(sys.argv[1:],"s:t:")
-if(len(args)!=7):
-    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <beta-concentration-parm> <input.essex> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
-(model,minEffect,POP_CONC,inFile,outfile,numSamples,numVariants)=args
+if(len(args)!=4):
+    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <input.essex> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   variant range is zero-based and inclusive\n")
+(model,inFile,numSamples,numVariants)=args
 stanFile=None
-thetaFile=None
 for pair in options:
     (key,value)=pair
     if(key=="-s"): stanFile=value
-    if(key=="-t"): thetaFile=value
 if(not rex.find(r"(\d+)-(\d+)",numVariants)):
     exit(numVariants+": specify range of variants: first-last")
 firstIndex=int(rex[1])
 lastIndex=int(rex[2])
-minEffect=float(minEffect)
-POP_CONC=float(POP_CONC)
-if(minEffect<1): raise Exception("Min-effect must be >= 1")
-THETA=None
-if(thetaFile is not None): THETA=open(thetaFile,"wt")
 stan=Stan(model)
 
-# Process all input lines, each line = one variant (one MCMC run)
-thetaIndex=None
+# Process all input lines, each line = one variant
 variantIndex=0
 pooledParser=PooledParser(inFile)
+b=[]; m=[]
 while(True):
     variant=pooledParser.nextVariant()
     if(variant is None): break
@@ -153,22 +130,16 @@ while(True):
         variantIndex+=1
         continue
     elif(variantIndex>lastIndex): break
-    #keep=variant.dropHomozygousPools()
-    #if(not keep): continue
-    (thetas,stanParser)=runVariant(stan,variant,numSamples,outfile)
-    if(thetas is None): continue
-    summarize(stanParser,thetas,variant.ID,minEffect)
+    appendCounts(variant,b,m)
     variantIndex+=1
-    if(THETA is not None):
-        for i in range(len(thetas)):
-            print(thetas[i],file=THETA,end="")
-            if(i<len(thetas)): print("\t",file=THETA,end="")
-        print(file=THETA)
+
+# Run model on all variants jointly
+stanParser=run(stan,b,m,numSamples)
+summarize(stanParser)
 os.remove(STDERR)
 os.remove(INPUT_FILE)
 if(stanFile is None):
     os.remove(OUTPUT_TEMP)
 else:
     os.system("cp "+OUTPUT_TEMP+" "+stanFile)
-if(THETA is not None): THETA.close()
 
