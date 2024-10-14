@@ -53,7 +53,7 @@ def writeToFile(fields,OUT):
 def writeInitializationFile(stan,numVariants,filename):
     OUT=open(filename,"wt")
     print("mu <- 1",file=OUT)
-    print("sigma2 <- 1",file=OUT)
+    print("sigma <- 1",file=OUT)
     print("alpha <- 1",file=OUT)
     print("beta <- 1",file=OUT)
     initArray=[1]*numVariants
@@ -61,18 +61,20 @@ def writeInitializationFile(stan,numVariants,filename):
     stan.writeOneDimArray("lambda",initArray,numVariants,OUT)
     OUT.close()
     
-def writeInputsFile(stan,b,m,filename):
+def writeInputsFile(stan,b,m,numVariants,numPools,filename):
     OUT=open(filename,"wt")
-    numVariants=len(b)
     print("N_VARIANTS <-",numVariants,file=OUT)
-    stan.writeOneDimArray("b",b,numVariants,OUT)
-    stan.writeOneDimArray("m",m,numVariants,OUT)
+    print("N_POOLS <-",numPools,file=OUT)
+    stan.writeTwoDimArray("b",b,numVariants,numPools,OUT)
+    stan.writeTwoDimArray("m",m,numVariants,numPools,OUT)
     OUT.close()
 
 def run(stan,b,m,numSamples):
     # Write inputs file for STAN
-    writeInputsFile(stan,b,m,INPUT_FILE)
-    writeInitializationFile(stan,len(b),INIT_FILE)
+    numVariants=len(b)
+    numPools=len(b[0])
+    writeInputsFile(stan,b,m,numVariants,numPools,INPUT_FILE)
+    writeInitializationFile(stan,numVariants,INIT_FILE)
 
     # Run STAN model
     cmd=stan.getCmd(WARMUP,numSamples,INPUT_FILE,OUTPUT_TEMP,STDERR,INIT_FILE)
@@ -87,19 +89,21 @@ def run(stan,b,m,numSamples):
 
 def summarize(parser):
     (mu,mean,SD,min,max)=parser.getSummary("mu")
-    (sigma2,mean,SD,min,max)=parser.getSummary("sigma2")
+    (sigma,mean,SD,min,max)=parser.getSummary("sigma")
     (alpha,mean,SD,min,max)=parser.getSummary("alpha")
     (beta,mean,SD,min,max)=parser.getSummary("beta")
-    print("mu=",round(mu,3),"sigma2=",round(sigma2,3),
+    print("mu=",round(mu,3),"sigma=",round(sigma,3),
           "alpha=",round(alpha,3),"beta=",round(beta,3),sep="\t")
 
 def appendCounts(variant,dnaRefList,rnaRefList):
-    newVar=variant.collapse()
-    pool=newVar.pools[0]
-    totalDnaRef=sum([rep.ref for rep in pool.DNA])
-    totalRnaRef=sum([rep.ref for rep in pool.RNA])
-    dnaRefList.append(totalDnaRef)
-    rnaRefList.append(totalRnaRef)
+    dnaSublist=[]; rnaSublist=[]
+    for pool in variant.pools:
+        poolDnaRef=sum([rep.ref for rep in pool.DNA])
+        poolRnaRef=sum([rep.ref for rep in pool.RNA])
+        dnaSublist.append(poolDnaRef)
+        rnaSublist.append(poolRnaRef)
+    dnaRefList.append(dnaSublist)
+    rnaRefList.append(rnaSublist)
     
 #=========================================================================
 # main()

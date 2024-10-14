@@ -8,13 +8,14 @@ functions {
    }}
 
 data {
-   int<lower=0> N_VARIANTS;    // number of pools
-   int<lower=0> b[N_VARIANTS]; // DNA ref read counts
-   int<lower=0> m[N_VARIANTS]; // RNA ref read counts
+   int<lower=0> N_VARIANTS;    // number of variants
+   int<lower=0> N_POOLS;       // number of pools per variant
+   int<lower=0> b[N_VARIANTS,N_POOLS]; // DNA ref read counts
+   int<lower=0> m[N_VARIANTS,N_POOLS]; // RNA ref read counts
 }
 parameters {
    real<lower=0> mu;        // mean of lognormal prior on r_ref
-   real<lower=0> sigma2;    // variance of lognormal prior on r_ref
+   real<lower=0> sigma;    // variance of lognormal prior on r_ref
    real<lower=0> alpha;     // shape parameter of gamma prior in NB
    real<lower=0> beta;      // rate parameter of gamma prior in NB
    real<lower=0.000001> r_ref[N_VARIANTS]; // ratio RNA/DNA for ref allele
@@ -25,12 +26,14 @@ model {
    alpha ~ lognormal(3,1);
    beta ~ lognormal(3,1);
    mu ~ lognormal(3,1);
-   sigma2 ~ lognormal(3,1);
+   sigma ~ lognormal(3,1);
    for(i in 1:N_VARIANTS) {
-      r_ref[i] ~ lognormal(mu,sigma2);
+      r_ref[i] ~ lognormal(mu,sigma);
       lambda[i] ~ gamma(alpha,beta);
-      b[i] ~ poisson(lambda);
-      m[i] ~ PPNB(b[i],alpha,beta,r_ref[i]);
+      for(j in 1:N_POOLS) {
+         b[i][j] ~ poisson(lambda);
+         m[i][j] ~ PPNB(b[i][j],alpha,beta,r_ref[i]);
+      }
    }
 }
 
