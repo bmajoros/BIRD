@@ -31,8 +31,8 @@ model {
       r_ref[i] ~ lognormal(mu,sigma);
       lambda[i] ~ gamma(alpha,beta);
       for(j in 1:N_POOLS) {
-         b[i][j] ~ poisson(lambda);
-         m[i][j] ~ PPNB(b[i][j],alpha,beta,r_ref[i]);
+         b[i][j] ~ poisson(lambda[i]);
+         m[i][j] ~ poisson(lambda[i]*r_ref[i]); //PPNB(b[i][j],alpha,beta,r_ref[i]);
       }
    }
 }
