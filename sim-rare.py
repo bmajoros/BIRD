@@ -100,8 +100,7 @@ for i in range(NUM_VARIANTS):
     theta=np.random.lognormal(0,1)
     r_ref=np.random.lognormal(RATIO_MEAN,RATIO_SD)
     r_alt=r_ref*theta
-    print(variantID,round(theta,3),
-          round(r_ref,3),round(r_alt,3),
+    print(variantID,round(theta,3),round(r_ref,3),round(r_alt,3),
           sep="\t",file=OUT_TRUTH)
     popFreq=None; genotypes=None
     while(True):
@@ -113,14 +112,17 @@ for i in range(NUM_VARIANTS):
     for pool in pools:
         poolID+=1
         (numRef,numAlt)=countAlleles(pool)
-        localFreq=float(numAlt)/float(numAlt+numRef)
-        print("\t(pool ",poolID," (freq ",localFreq,")",sep="",file=OUT_DATA)
+        p=float(numAlt)/float(numAlt+numRef)
+        print("\t(pool ",poolID," (freq ",p,")",sep="",file=OUT_DATA)
         dnaRef=None;dnaAlt=None;rnaRef=None;rnaAlt=None
-        if(localFreq>0 and localFreq<1): # Het pool
-            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,localFreq)
-            rnaRef=sampleNB(dnaRef,r_ref)
-            rnaAlt=sampleNB(dnaAlt,r_alt)
-        elif(localFreq==0): # Homozygous reference
+        if(p>0 and p<1): # Het pool
+            (dnaRef,dnaAlt)=sampleBinomial(TOTAL_DNA,p)
+            q=theta*p/(1-p+theta*p)
+            TOTAL_RNA=int(r_ref*dnaRef+r_alt*dnaAlt)
+            (rnaRef,rnaAlt)=sampleBinomial(TOTAL_RNA,q)
+            #rnaRef=sampleNB(dnaRef,r_ref)
+            #rnaAlt=sampleNB(dnaAlt,r_alt)
+        elif(p==0): # Homozygous reference
             dnaRef=TOTAL_DNA; dnaAlt=0
             rnaRef=sampleNB(dnaRef,r_ref)
             rnaAlt=0
