@@ -52,6 +52,7 @@ with open(countsFile,"rt") as IN:
             n=float(alt+ref)
             p=float(alt)/n
             SE=math.sqrt(p*(1-p)/n)
+            if(SE==0.0): continue
             interval=(p-1.96*SE,p+1.96*SE)
             label="IN" if (freq>=interval[0] and freq<=interval[1]) else "OUT"
             print(ID,label,freq,round(p,4),round(interval[0],2),round(interval[1],2),sep="\t")
