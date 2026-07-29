@@ -1,22 +1,18 @@
 #!/usr/bin/env python
 #=========================================================================
-# This is OPEN SOURCE SOFTWARE governed by the Gnu General Public
-# License (GPL) version 3, as described at www.opensource.org.
+# This is OPEN SOURCE SOFTWARE governed by the MIT License
 # Copyright (C)2026 William H. Majoros <bmajoros@duke.edu>
 #=========================================================================
-from __future__ import (absolute_import, division, print_function, 
-   unicode_literals, generators, nested_scopes, with_statement)
-from builtins import (bytes, dict, int, list, object, range, str, ascii,
-   chr, hex, input, next, oct, open, pow, round, super, filter, map, zip)
-# The above imports should allow this program to run in both Python 2 and
-# Python 3.  You might need to update your version of module "future".
 import sys
 import random
 import gzip
+import numpy as np
 import ProgramName
 from Rex import Rex
 
-random.seed(0)
+SEED=0
+random.seed(SEED)
+rng=np.random.default_rng(seed=SEED)
 rex=Rex()
 
 class Donor:
@@ -44,7 +40,6 @@ class Pool:
                 gt=donor.genotypes[i]
                 totalAlleles+=2
                 totalAlts+=gt[0]+gt[1]
-            print(totalAlts,"/",totalAlleles)
             self.AFs[i]=float(totalAlts)/float(totalAlleles)
 
 def computePoolAFs(pools):
@@ -88,12 +83,22 @@ def assignDonorsToPools(donors,pools):
     for index, element in enumerate(donors):
         pools[index % numPools].donors.append(element)
 
+def simCounts(numVariants,pools,readsPerVariant):
+    numPools=len(pools)
+    for i in range(numVariants):
+        for j in range(numPools):
+            pool=pools[j]
+            AF=pool.AFs[i]
+            alt=rng.binomial(readsPerVariant,AF,1)[0]
+            ref=readsPerVariant-alt
+            print(alt,",",ref)
+            
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=7):
-    exit(ProgramName.get()+" <in.vcf.gz> <max-variants> <min-AF> <max-AF> <num-pools> <theta>\n")
-(vcfFilename,maxVariants,minAF,maxAF,numPools,theta)=sys.argv[1:]
+if(len(sys.argv)!=8):
+    exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools> <theta> <#reads-per-variant-per-pool>\n")
+(vcfFilename,maxVariants,minAF,maxAF,numPools,theta,readsPerVariant)=sys.argv[1:]
 
 # Parse command line
 maxVariants=int(maxVariants)
@@ -101,6 +106,7 @@ minAF=float(minAF)
 maxAF=float(maxAF)
 numPools=int(numPools)
 theta=float(theta)
+readsPerVariant=int(readsPerVariant)
 
 # Load VCF file
 donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
@@ -112,6 +118,7 @@ pools=initPools(numPools)
 assignDonorsToPools(donors,pools)
 computePoolAFs(pools)
 #for pool in pools: print(len(pool.donors))
-print(pools[0].AFs)
+#print(pools[0].AFs)
 
 # Simulate counts
+simCounts(maxVariants,pools,readsPerVariant)
