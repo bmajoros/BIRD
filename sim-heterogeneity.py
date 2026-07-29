@@ -21,12 +21,37 @@ rex=Rex()
 
 class Donor:
     def __init__(self):
-        self.genotypes=[]
+        self.genotypes=[] # indexed by variant, each genotype=[int,int]
+    def numVariants(self):
+        return len(self.genotypes)
 
 class Pool:
     def __init__(self):
         self.donors=[]
+        self.AFs=None # indexed by variant
+    def numVariants(self):
+        if(len(self.donors)==0): return 0
+        return self.donors[0].numVariants()
+    def numDonors(self):
+        return len(self.donors)
+    def computeAFs(self):
+        numVariants=self.numVariants()
+        self.AFs=[0]*numVariants
+        for i in range(numVariants):
+            totalAlleles=0
+            totalAlts=0
+            for donor in self.donors:
+                gt=donor.genotypes[i]
+                totalAlleles+=2
+                totalAlts+=gt[0]+gt[1]
+            print(totalAlts,"/",totalAlleles)
+            self.AFs[i]=float(totalAlts)/float(totalAlleles)
 
+def computePoolAFs(pools):
+    if(len(pools)==0): raise Exception("no pools")
+    numVariants=pools[0].numVariants()
+    for pool in pools: pool.computeAFs()
+        
 def initPools(numPools):
     return [Pool() for _ in range(numPools)]
         
@@ -54,7 +79,7 @@ def loadVCF(vcfFilename,maxVariants,minAF,maxAF):
             for i in range(9,numFields):
                 gt=fields[i]
                 rex.findOrDie("(\d)\|(\d)",gt)
-                gt=[rex[1],rex[2]]
+                gt=[int(rex[1]),int(rex[2])]
                 donors[i-9].genotypes.append(gt)
     return donors
 
@@ -66,15 +91,16 @@ def assignDonorsToPools(donors,pools):
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=6):
-    exit(ProgramName.get()+" <in.vcf.gz> <max-variants> <min-AF> <max-AF> <num-pools>\n")
-(vcfFilename,maxVariants,minAF,maxAF,numPools)=sys.argv[1:]
+if(len(sys.argv)!=7):
+    exit(ProgramName.get()+" <in.vcf.gz> <max-variants> <min-AF> <max-AF> <num-pools> <theta>\n")
+(vcfFilename,maxVariants,minAF,maxAF,numPools,theta)=sys.argv[1:]
 
 # Parse command line
 maxVariants=int(maxVariants)
 minAF=float(minAF)
 maxAF=float(maxAF)
 numPools=int(numPools)
+theta=float(theta)
 
 # Load VCF file
 donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
@@ -84,6 +110,8 @@ numDonors=len(donors)
 # Assign donors to pools
 pools=initPools(numPools)
 assignDonorsToPools(donors,pools)
+computePoolAFs(pools)
 #for pool in pools: print(len(pool.donors))
+print(pools[0].AFs)
 
 # Simulate counts
