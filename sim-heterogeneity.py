@@ -2,7 +2,7 @@
 #=========================================================================
 # This is OPEN SOURCE SOFTWARE governed by the Gnu General Public
 # License (GPL) version 3, as described at www.opensource.org.
-# Copyright (C)2021 William H. Majoros <bmajoros@alumni.duke.edu>
+# Copyright (C)2026 William H. Majoros <bmajoros@duke.edu>
 #=========================================================================
 from __future__ import (absolute_import, division, print_function, 
    unicode_literals, generators, nested_scopes, with_statement)
@@ -29,7 +29,7 @@ def initDonors(numDonors):
         donors.append(Donor())
     return donors
         
-def loadVCF(vcfFilename,maxVariants):
+def loadVCF(vcfFilename,maxVariants,minAF,maxAF):
     numLoaded=0
     donors=None
     with gzip.open(vcfFilename,"rt") as IN:
@@ -38,6 +38,9 @@ def loadVCF(vcfFilename,maxVariants):
             fields=line.rstrip().split()
             numFields=len(fields)
             if(numFields<100): continue
+            rex.findOrDie("AF=([^;]+);",fields[7])
+            AF=float(rex[1])
+            if(AF<minAF or AF>maxAF): continue
             numLoaded+=1
             if(numLoaded>=maxVariants): break
             numDonors=numFields-9
@@ -52,11 +55,13 @@ def loadVCF(vcfFilename,maxVariants):
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=3):
-    exit(ProgramName.get()+" <in.vcf.gz> <max-variants>\n")
-(vcfFilename,maxVariants)=sys.argv[1:]
+if(len(sys.argv)!=5):
+    exit(ProgramName.get()+" <in.vcf.gz> <max-variants> <min-AF> <max-AF>\n")
+(vcfFilename,maxVariants,minAF,maxAF)=sys.argv[1:]
 
 maxVariants=int(maxVariants)
-donors=loadVCF(vcfFilename,maxVariants)
+minAF=float(minAF)
+maxAF=float(maxAF)
+donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
 print(donors[0].genotypes)
-print(donors[1].genotypes)
+
