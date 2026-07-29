@@ -15,6 +15,7 @@ import math
 import ProgramName
 
 MIN=3
+OUT_ONLY=False
 
 def printR(recs):
     ID=None
@@ -49,7 +50,7 @@ def process(recs):
         (ID,x,mean,left,right)=rec
         if(x<=left): numLeft+=1
         elif(x>=right): numRight+=1
-    if(numLeft>0 and numRight>0):
+    if(OUT_ONLY==False or numLeft>0 and numRight>0):
         printRecs(recs)
 
 #=========================================================================
@@ -70,7 +71,7 @@ with open(infile,"rt") as IN:
             if(len(recs)>0):
                 process(recs)
                 recs=[]
-        if(inout=="OUT"):
+        if(OUT_ONLY==False or inout=="OUT"):
             recs.append([ID,theoretical,mean,left,right])
         prevID=ID
 

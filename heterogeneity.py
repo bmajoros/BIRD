@@ -50,10 +50,21 @@ with open(countsFile,"rt") as IN:
         for dna in DNA:
             (ref,alt)=(int(dna[0]),int(dna[1]))
             n=float(alt+ref)
+            alt=float(alt); ref=float(ref)
+
+            # This is the less accurate normal approx. for binomial CI:
+            #p=float(alt)/n
+            #SE=math.sqrt(p*(1-p)/n)
+            #if(SE==0.0): continue
+            #interval=(p-1.96*SE,p+1.96*SE)
+
+            # This is the Wilson estimator for binomial confidence interval:
+            z=1.96
+            p=(alt+z*z/2)/(n+1.96*1.96)
+            SE=z/(n+z*z)*math.sqrt(alt/n*ref+z*z/4)
+            interval=(p-SE,p+SE)
+            
             p=float(alt)/n
-            SE=math.sqrt(p*(1-p)/n)
-            if(SE==0.0): continue
-            interval=(p-1.96*SE,p+1.96*SE)
             label="IN" if (freq>=interval[0] and freq<=interval[1]) else "OUT"
             print(ID,label,freq,round(p,4),round(interval[0],2),round(interval[1],2),sep="\t")
             if(label=="IN"): numIn+=1
