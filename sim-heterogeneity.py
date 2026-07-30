@@ -89,47 +89,62 @@ def addNoise(x,sd):
     newValue=x+noise
     while(newValue<=0):
         sd/=2
+        if(sd<0.01): return x
         noise=rng.normal(loc=0,scale=sd)
         newValue=x+noise
+    if(newValue>1): newValue=1
     return newValue
         
-def simCounts(numVariants,pools,readsPerVariant,theta):
+def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,sd):
+    multiplePools=(poolsOrReps=="pools")
     numPools=len(pools)
-    numGroups=numPools # adjust later for replicates
+    numGroups=numPools if poolsOrReps=="pools" else numReps
     print("variants=",numVariants," groups=",numGroups,
           " each group is (ref,alt)",sep="")
     for i in range(numVariants):
         print("var",i+1,"\t",sep="",end="")
         for j in range(numPools):
-            print("dna=",end="")
             pool=pools[j]
-            p=pool.AFs[i]
-            p=addNoise(p) # only added to DNA: represents transfection drift
-            alt=rng.binomial(readsPerVariant,p,1)[0]
-            ref=readsPerVariant-alt
-            print(alt,",",ref,"\t",sep="",end="")
-            print("rna=",end="")
-            q=theta*p/(1-p+theta*p)
-            alt=rng.binomial(readsPerVariant,q,1)[0]
-            ref=readsPerVariant-alt
-            print(alt,",",ref,"\t",sep="",end="")
-            if(j<numPools-1): print("\t",end="")
+            for k in range(numReps):
+                generateGroup(pool,readsPerVariant,theta,i,j,sd)
+                if(multiplePools and j<numPools-1 or
+                   not multiplePools and k<numReps-1):
+                    print("\t",end="")
         print()
+
+def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
+    print("dna=",end="")
+    p=pool.AFs[varIndex]
+    p=addNoise(p,sd) # only added to DNA: represents transfection drift
+    alt=rng.binomial(readsPerVariant,p,1)[0]
+    ref=readsPerVariant-alt
+    print(alt,",",ref,"\t",sep="",end="")
+    print("rna=",end="")
+    q=theta*p/(1-p+theta*p)
+    alt=rng.binomial(readsPerVariant,q,1)[0]
+    ref=readsPerVariant-alt
+    print(alt,",",ref,"\t",sep="",end="")
             
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=8):
-    exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools> <theta> <#reads-per-variant-per-pool>\n")
-(vcfFilename,maxVariants,minAF,maxAF,numPools,theta,readsPerVariant)=sys.argv[1:]
+if(len(sys.argv)!=10):
+    exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools-or-reps> <pools|reps> <theta> <#reads-per-variant-per-pool> <noiseSD>\n")
+(vcfFilename,maxVariants,minAF,maxAF,numGroups,poolsOrReps,theta,readsPerVariant,noiseSD)=sys.argv[1:]
 
 # Parse command line
 maxVariants=int(maxVariants)
 minAF=float(minAF)
 maxAF=float(maxAF)
-numPools=int(numPools)
+numGroups=int(numGroups)
 theta=float(theta)
 readsPerVariant=int(readsPerVariant)
+noiseSD=float(noiseSD)
+numPools=1
+numReps=1
+if(poolsOrReps=="pools"): numPools=numGroups
+elif(poolsOrReps=="reps"): numReps=numGroups
+else: raise Exception("specify pools or reps")
 
 # Load VCF file
 donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
@@ -141,4 +156,4 @@ assignDonorsToPools(donors,pools)
 computePoolAFs(pools)
 
 # Simulate counts
-simCounts(maxVariants,pools,readsPerVariant,theta)
+simCounts(maxVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,noiseSD)
