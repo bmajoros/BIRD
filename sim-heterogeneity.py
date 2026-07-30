@@ -105,6 +105,7 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
     multiplePools=(poolsOrReps=="pools")
     numPools=len(pools)
     numGroups=numPools if poolsOrReps=="pools" else numReps
+    readsPerGroup=int(readsPerVariant/numGroups)
     print("variants=",numVariants," groups=",numGroups,
           " theta=",theta," each group is (ref,alt,AF)",sep="")
     p_bar=getPbar(pools)
@@ -117,7 +118,7 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
             pool=pools[j]
             for k in range(numReps):
                 varIndex=0 # Always simulate from the same real variant!
-                rec=generateGroup(pool,readsPerVariant,theta,varIndex,j,sd)
+                rec=generateGroup(pool,readsPerGroup,theta,varIndex,j,sd)
                 recs.append(rec)
         hetero=computeHeterogeneity([rec[0] for rec in recs])
         print("var",i+1,"\theterogeneity=",hetero,
@@ -144,22 +145,22 @@ def getQbar(p_bar,theta):
 def transformPtoQ(p,theta):
     return theta*p/(1-p+theta*p)
         
-def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
+def generateGroup(pool,readsPerGroup,theta,varIndex,poolIndex,sd):
     p=pool.AFs[varIndex]
     p=addNoise(p,sd) # only added to DNA: represents transfection drift
-    DNAalt=rng.binomial(readsPerVariant,p,1)[0]
-    DNAref=readsPerVariant-DNAalt
+    DNAalt=rng.binomial(readsPerGroup,p,1)[0]
+    DNAref=readsPerGroup-DNAalt
     q=transformPtoQ(p,theta)
     q=round(q,5)
-    RNAalt=rng.binomial(readsPerVariant,q,1)[0]
-    RNAref=readsPerVariant-RNAalt
+    RNAalt=rng.binomial(readsPerGroup,q,1)[0]
+    RNAref=readsPerGroup-RNAalt
     return(p,q,DNAref,DNAalt,RNAref,RNAalt)
             
 #=========================================================================
 # main()
 #=========================================================================
 if(len(sys.argv)!=10):
-    exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools-or-reps> <pools|reps> <theta> <#reads-per-variant-per-pool> <noiseSD>\n")
+    exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools-or-reps> <pools|reps> <theta> <#reads-per-variant> <noiseSD>\n")
 (vcfFilename,numVariants,minAF,maxAF,numGroups,poolsOrReps,theta,readsPerVariant,noiseSD)=sys.argv[1:]
 
 # Parse command line
