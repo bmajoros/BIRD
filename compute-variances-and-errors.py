@@ -82,6 +82,7 @@ def computeVarP(variants):
         R=sum([group.dna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.dna[1] for group in variant.groups]) # sum alt counts
         p_hat=float(A)/float(A+R)
+        variant.p_hat=p_hat
         values.append(p_hat)
         error=p_hat=variant.p_bar
         squaredErrors.append(error*error)
@@ -96,12 +97,28 @@ def computeVarQ(variants):
         R=sum([group.rna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.rna[1] for group in variant.groups]) # sum alt counts
         q_hat=float(A)/float(A+R)
+        variant.q_hat=q_hat
         values.append(q_hat)
         error=q_hat=variant.q_bar
         squaredErrors.append(error*error)
     var=statistics.variance(values)
     rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
     return (var,rmse)
+
+def computeVarTheta(variants,theta):
+    values=[]
+    squaredErrors=[]
+    for variant in variants:
+        p=variant.p_hat
+        q=variant.q_hat
+        theta_hat=q/(1-q)/(p/(1-p))
+        values.append(theta_hat)
+        error=theta_hat-theta
+        squaredErrors.append(error*error)
+    var=statistics.variance(values)
+    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    return (var,rmse)
+    
 
 #=========================================================================
 # main()
@@ -118,8 +135,13 @@ varDNA=computeVarDNA(variants)
 varRNA=computeVarRNA(variants)
 print(varDNA,varRNA)
 
-# Compute variance in estimates of p and q
+# Compute variance and RMSE in estimates of p and q
 (varP,rmseP)=computeVarP(variants)
 (varQ,rmseQ)=computeVarQ(variants)
 print(varP,varQ)
 print(rmseP,rmseQ)
+
+# Compute variance and RMSE in estimate of theta
+(varTheta,rmseTheta)=computeVarTheta(variants,theta)
+print(varTheta,rmseTheta)
+
