@@ -109,8 +109,12 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
     print("variants=",numVariants," groups=",numGroups,
           " heterogeneity=",heterogeneity," theta=",theta,
           " each group is (ref,alt,AF)",sep="")
+    p_bar=getPbar(pools)
+    p_bar=round(p_bar,5)
+    q_bar=getQbar(p_bar,theta)
+    q_bar=round(q_bar,5)
     for i in range(numVariants):
-        print("var",i+1,"\t",sep="",end="")
+        print("var",i+1,"\tp_bar=",p_bar,"\tq_bar=",q_bar,"\t",sep="",end="")
         for j in range(numPools):
             pool=pools[j]
             for k in range(numReps):
@@ -121,6 +125,22 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
                     print("\t",end="")
         print()
 
+def getPbar(pools):
+    weightedSum=0
+    denom=0
+    for pool in pools:
+        numDonors=len(pool.donors)
+        p=pool.AFs[0] # always use the same real variant for simulation
+        weightedSum+=numDonors*p
+        denom+=numDonors
+    return float(weightedSum)/float(denom)
+
+def getQbar(p_bar,theta):
+    return transformPtoQ(p_bar,theta)
+        
+def transformPtoQ(p,theta):
+    return theta*p/(1-p+theta*p)
+        
 def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
     p=pool.AFs[varIndex]
     p=addNoise(p,sd) # only added to DNA: represents transfection drift
@@ -129,7 +149,7 @@ def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
     print("dna=",end="")
     print(ref,",",alt,",",p,"\t",sep="",end="")
     print("rna=",end="")
-    q=theta*p/(1-p+theta*p)
+    q=transformPtoQ(p,theta)
     q=round(q,5)
     alt=rng.binomial(readsPerVariant,q,1)[0]
     ref=readsPerVariant-alt

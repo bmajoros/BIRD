@@ -5,14 +5,17 @@
 #=========================================================================
 import sys
 import statistics
+import math
 import ProgramName
 from Rex import Rex
 rex=Rex()
 
 class Variant:
-    def __init__(self,ID,groups):
+    def __init__(self,ID,groups,p_bar,q_bar):
         self.ID=ID
         self.groups=groups
+        self.p_bar=p_bar # average AF across groups (pools or reps) in DNA
+        self.q_bar=q_bar # ditto, but for RNA instead of DNA
 
 class Group:
     def __init__(self,dna,rna):
@@ -36,7 +39,11 @@ def readData(filename):
 def parseVariant(line,numGroups):
     fields=line.rstrip().split()
     ID=fields[0]
-    nextField=1
+    rex.findOrDie("p_bar=(\S+)",fields[1])
+    p_bar=float(rex[1])
+    rex.findOrDie("q_bar=(\S+)",fields[2])
+    q_bar=float(rex[1])
+    nextField=3
     groups=[]
     for i in range(numGroups):
         dna=parseCounts(fields[nextField])
@@ -45,7 +52,7 @@ def parseVariant(line,numGroups):
         nextField+=1
         group=Group(dna,rna)
         groups.append(group)
-    return Variant(ID,groups)
+    return Variant(ID,groups,p_bar,q_bar)
 
 def parseCounts(text):
     rex.findOrDie("na=(\d+),(\d+),(\S+)",text)
@@ -70,21 +77,31 @@ def computeVarRNA(variants):
 
 def computeVarP(variants):
     values=[]
+    squaredErrors=[]
     for variant in variants:
         R=sum([group.dna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.dna[1] for group in variant.groups]) # sum alt counts
         p_hat=float(A)/float(A+R)
         values.append(p_hat)
-    return statistics.variance(values)
+        error=p_hat=variant.p_bar
+        squaredErrors.append(error*error)
+    var=statistics.variance(values)
+    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    return (var,rmse)
 
 def computeVarQ(variants):
     values=[]
+    squaredErrors=[]
     for variant in variants:
         R=sum([group.rna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.rna[1] for group in variant.groups]) # sum alt counts
-        p_hat=float(A)/float(A+R)
-        values.append(p_hat)
-    return statistics.variance(values)
+        q_hat=float(A)/float(A+R)
+        values.append(q_hat)
+        error=q_hat=variant.q_bar
+        squaredErrors.append(error*error)
+    var=statistics.variance(values)
+    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    return (var,rmse)
 
 #=========================================================================
 # main()
@@ -102,6 +119,7 @@ varRNA=computeVarRNA(variants)
 print(varDNA,varRNA)
 
 # Compute variance in estimates of p and q
-varP=computeVarP(variants)
-varQ=computeVarQ(variants)
+(varP,rmseP)=computeVarP(variants)
+(varQ,rmseQ)=computeVarQ(variants)
 print(varP,varQ)
+print(rmseP,rmseQ)
