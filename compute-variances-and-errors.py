@@ -127,21 +127,38 @@ if(len(sys.argv)!=2):
     exit(ProgramName.get()+" <counts.txt>\n")
 (infile,)=sys.argv[1:]
 
+# Parse filename
+rex.findOrDie("pools(\d+)-theta(\S+)-reads(\d+)-noise(\S+).txt",infile)
+numPools=rex[1]
+theta=rex[2]
+reads=rex[3]
+noise=rex[4]
+
 # Load variants
 variants,numVariants,numGroups,heterogeneity,theta=readData(infile)
 
 # Compute variance in DNA counts
 varDNA=computeVarDNA(variants)
 varRNA=computeVarRNA(variants)
-print(varDNA,varRNA)
 
 # Compute variance and RMSE in estimates of p and q
 (varP,rmseP)=computeVarP(variants)
 (varQ,rmseQ)=computeVarQ(variants)
-print(varP,varQ)
-print(rmseP,rmseQ)
 
 # Compute variance and RMSE in estimate of theta
 (varTheta,rmseTheta)=computeVarTheta(variants,theta)
-print(varTheta,rmseTheta)
+
+# Report stats
+print("pools\ttheta\treads\tnoise\tvarDNA\tvarRNA\tvarP\tvarQ\trmseP\t"+\
+      "rmseQ\tvarTheta\trmseTheta")
+print(numPools,theta,reads,noise,round(varDNA,4),round(varRNA,4),
+      round(varP,7),round(varQ,7),round(rmseP,5),round(rmseQ,5),
+      round(varTheta,5),round(rmseTheta,5),sep="\t")
+
+#print("pools=",numPools," theta=",theta," reads=",reads," noise=",noise,
+#      " varDNA=",round(varDNA,2)," varRNA=",round(varRNA,3),
+#      " varP=",round(varP,7)," varQ=",round(varQ,7),
+#      " rmseP=",round(rmseP,4)," rmseQ=",round(rmseQ,4),
+#      " varTheta=",round(varTheta,3)," rmseTheta=",round(rmseTheta,3),
+#      sep="")
 
