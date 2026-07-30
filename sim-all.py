@@ -20,9 +20,11 @@ if(len(sys.argv)!=8):
 
 for numGroups in GROUPS:
     cmd="git/sim-heterogeneity.py "+VCF+" "+NUM_VAR+" "+MIN_AF+" "+\
-        MAX_AF+" "+NUM_VAR+" "+poolsOrReps+" "+THETA+" "+READS+" "+NOISE+\
+        MAX_AF+" "+str(numGroups)+" "+poolsOrReps+" "+THETA+" "+READS+" "+\
+        NOISE+\
         " > "+OUTDIR+"/"+poolsOrReps+str(numGroups)+"-theta+"+THETA+\
         "-reads"+READS+"-noise"+NOISE+".txt"
+    print(cmd)
     out=Pipe.run(cmd)
     print(out)
 
