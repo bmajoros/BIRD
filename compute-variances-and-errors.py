@@ -6,16 +6,18 @@
 import sys
 import statistics
 import math
+from pathlib import Path
 import ProgramName
 from Rex import Rex
 rex=Rex()
 
 class Variant:
-    def __init__(self,ID,groups,p_bar,q_bar):
+    def __init__(self,ID,groups,p_bar,q_bar,heterogeneity):
         self.ID=ID
         self.groups=groups
         self.p_bar=p_bar # average AF across groups (pools or reps) in DNA
         self.q_bar=q_bar # ditto, but for RNA instead of DNA
+        self.heterogeneity=heterogeneity
 
 class Group:
     def __init__(self,dna,rna):
@@ -26,24 +28,25 @@ def readData(filename):
     variants=[]
     with open(filename,"rt") as IN:
         header=IN.readline()
-        rex.findOrDie("variants=(\d+) groups=(\d+) heterogeneity=(\S+) theta=(\S+)",header)
+        rex.findOrDie("variants=(\d+) groups=(\d+) theta=(\S+)",header)
         numVariants=int(rex[1])
         numGroups=int(rex[2])
-        heterogeneity=float(rex[3])
-        theta=float(rex[4])
+        theta=float(rex[3])
         for line in IN:
             v=parseVariant(line,numGroups)
             variants.append(v)
-    return (variants,numVariants,numGroups,heterogeneity,theta)
+    return (variants,numVariants,numGroups,theta)
 
 def parseVariant(line,numGroups):
     fields=line.rstrip().split()
     ID=fields[0]
-    rex.findOrDie("p_bar=(\S+)",fields[1])
+    rex.findOrDie("heterogeneity=(\S+)",fields[1])
+    heterogeneity=float(rex[1])
+    rex.findOrDie("p_bar=(\S+)",fields[2])
     p_bar=float(rex[1])
-    rex.findOrDie("q_bar=(\S+)",fields[2])
+    rex.findOrDie("q_bar=(\S+)",fields[3])
     q_bar=float(rex[1])
-    nextField=3
+    nextField=4
     groups=[]
     for i in range(numGroups):
         dna=parseCounts(fields[nextField])
@@ -52,7 +55,7 @@ def parseVariant(line,numGroups):
         nextField+=1
         group=Group(dna,rna)
         groups.append(group)
-    return Variant(ID,groups,p_bar,q_bar)
+    return Variant(ID,groups,p_bar,q_bar,heterogeneity)
 
 def parseCounts(text):
     rex.findOrDie("na=(\d+),(\d+),(\S+)",text)
@@ -81,10 +84,10 @@ def computeVarP(variants):
     for variant in variants:
         R=sum([group.dna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.dna[1] for group in variant.groups]) # sum alt counts
-        p_hat=float(A)/float(A+R)
+        p_hat=float(A+1)/float(A+R+1)
         variant.p_hat=p_hat
         values.append(p_hat)
-        error=p_hat=variant.p_bar
+        error=p_hat-variant.p_bar
         squaredErrors.append(error*error)
     var=statistics.variance(values)
     rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
@@ -96,10 +99,10 @@ def computeVarQ(variants):
     for variant in variants:
         R=sum([group.rna[0] for group in variant.groups]) # sum ref counts
         A=sum([group.rna[1] for group in variant.groups]) # sum alt counts
-        q_hat=float(A)/float(A+R)
+        q_hat=float(A+1)/float(A+R+1)
         variant.q_hat=q_hat
         values.append(q_hat)
-        error=q_hat=variant.q_bar
+        error=q_hat-variant.q_bar
         squaredErrors.append(error*error)
     var=statistics.variance(values)
     rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
@@ -120,45 +123,49 @@ def computeVarTheta(variants,theta):
     return (var,rmse)
     
 
+def processFile(filename):
+    # Parse filename
+    rex.findOrDie("s(\d+)-theta(\S+)-reads(\d+)-noise(\S+).txt",filename)
+    numPools=rex[1]
+    theta=rex[2]
+    reads=rex[3]
+    noise=rex[4]
+
+    # Load variants
+    variants,numVariants,numGroups,theta=readData(filename)
+    meanHetero=statistics.mean([v.heterogeneity for v in variants])
+    
+    # Compute variance in DNA counts
+    varDNA=computeVarDNA(variants)
+    varRNA=computeVarRNA(variants)
+
+    # Compute variance and RMSE in estimates of p and q
+    (varP,rmseP)=computeVarP(variants)
+    (varQ,rmseQ)=computeVarQ(variants)
+
+    # Compute variance and RMSE in estimate of theta
+    (varTheta,rmseTheta)=computeVarTheta(variants,theta)
+
+    # Report stats
+    print(numPools,round(meanHetero,7),theta,reads,noise,round(varDNA,4),
+          round(varRNA,4),round(varP,7),round(varQ,7),round(rmseP,5),
+          round(rmseQ,5),round(varTheta,5),round(rmseTheta,5),sep="\t")
+
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=2):
-    exit(ProgramName.get()+" <counts.txt>\n")
-(infile,)=sys.argv[1:]
+if(len(sys.argv)!=3):
+    exit(ProgramName.get()+" <dir> <pools|reps>\n")
+(subdir,poolsOrReps)=sys.argv[1:]
+dir_path=Path(subdir)
 
-# Parse filename
-rex.findOrDie("pools(\d+)-theta(\S+)-reads(\d+)-noise(\S+).txt",infile)
-numPools=rex[1]
-theta=rex[2]
-reads=rex[3]
-noise=rex[4]
+if(poolsOrReps!="pools" and poolsOrReps!="reps"):
+    raise Exception("Specify pools or reps")
 
-# Load variants
-variants,numVariants,numGroups,heterogeneity,theta=readData(infile)
-
-# Compute variance in DNA counts
-varDNA=computeVarDNA(variants)
-varRNA=computeVarRNA(variants)
-
-# Compute variance and RMSE in estimates of p and q
-(varP,rmseP)=computeVarP(variants)
-(varQ,rmseQ)=computeVarQ(variants)
-
-# Compute variance and RMSE in estimate of theta
-(varTheta,rmseTheta)=computeVarTheta(variants,theta)
-
-# Report stats
-print("pools\ttheta\treads\tnoise\tvarDNA\tvarRNA\tvarP\tvarQ\trmseP\t"+\
-      "rmseQ\tvarTheta\trmseTheta")
-print(numPools,theta,reads,noise,round(varDNA,4),round(varRNA,4),
-      round(varP,7),round(varQ,7),round(rmseP,5),round(rmseQ,5),
-      round(varTheta,5),round(rmseTheta,5),sep="\t")
-
-#print("pools=",numPools," theta=",theta," reads=",reads," noise=",noise,
-#      " varDNA=",round(varDNA,2)," varRNA=",round(varRNA,3),
-#      " varP=",round(varP,7)," varQ=",round(varQ,7),
-#      " rmseP=",round(rmseP,4)," rmseQ=",round(rmseQ,4),
-#      " varTheta=",round(varTheta,3)," rmseTheta=",round(rmseTheta,3),
-#      sep="")
-
+print("groups\theterogeneity\ttheta\treads\tnoise\tvarDNA\tvarRNA\t"+\
+      "varP\tvarQ\trmseP\trmseQ\tvarTheta\trmseTheta")
+files=[item.name for item in dir_path.iterdir() if item.is_file()]
+for filename in files:
+    if(rex.find(poolsOrReps+".*\.txt$",filename)):
+        processFile(subdir+"/"+filename)
+    

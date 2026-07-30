@@ -43,9 +43,8 @@ class Pool:
                 totalAlts+=gt[0]+gt[1]
             self.AFs[i]=float(totalAlts)/float(totalAlleles)
 
-def computeHeterogeneity(pools):
-    values=[pool.AFs[0] for pool in pools]
-    return statistics.variance(values) if len(values)>1 else 0
+def computeHeterogeneity(AFs):
+    return statistics.variance(AFs) if len(AFs)>1 else 0
     
 def computePoolAFs(pools):
     if(len(pools)==0): raise Exception("no pools")
@@ -102,27 +101,31 @@ def addNoise(x,sd):
     return newValue
         
 def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
-              sd,heterogeneity):
+              sd):
     multiplePools=(poolsOrReps=="pools")
     numPools=len(pools)
     numGroups=numPools if poolsOrReps=="pools" else numReps
     print("variants=",numVariants," groups=",numGroups,
-          " heterogeneity=",heterogeneity," theta=",theta,
-          " each group is (ref,alt,AF)",sep="")
+          " theta=",theta," each group is (ref,alt,AF)",sep="")
     p_bar=getPbar(pools)
     p_bar=round(p_bar,5)
     q_bar=getQbar(p_bar,theta)
     q_bar=round(q_bar,5)
     for i in range(numVariants):
-        print("var",i+1,"\tp_bar=",p_bar,"\tq_bar=",q_bar,"\t",sep="",end="")
+        recs=[]
         for j in range(numPools):
             pool=pools[j]
             for k in range(numReps):
                 varIndex=0 # Always simulate from the same real variant!
-                generateGroup(pool,readsPerVariant,theta,varIndex,j,sd)
-                if(multiplePools and j<numPools-1 or
-                   not multiplePools and k<numReps-1):
-                    print("\t",end="")
+                rec=generateGroup(pool,readsPerVariant,theta,varIndex,j,sd)
+                recs.append(rec)
+        hetero=computeHeterogeneity([rec[0] for rec in recs])
+        print("var",i+1,"\theterogeneity=",hetero,
+              "\tp_bar=",p_bar,"\tq_bar=",q_bar,"\t",sep="",end="")
+        for rec in recs:
+            (p,q,DNAref,DNAalt,RNAref,RNAalt)=rec
+            print("\tdna=",DNAref,",",DNAalt,",",p,
+                  "\trna=",RNAref,",",RNAalt,",",q,sep="",end="")
         print()
 
 def getPbar(pools):
@@ -144,16 +147,13 @@ def transformPtoQ(p,theta):
 def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
     p=pool.AFs[varIndex]
     p=addNoise(p,sd) # only added to DNA: represents transfection drift
-    alt=rng.binomial(readsPerVariant,p,1)[0]
-    ref=readsPerVariant-alt
-    print("dna=",end="")
-    print(ref,",",alt,",",p,"\t",sep="",end="")
-    print("rna=",end="")
+    DNAalt=rng.binomial(readsPerVariant,p,1)[0]
+    DNAref=readsPerVariant-DNAalt
     q=transformPtoQ(p,theta)
     q=round(q,5)
-    alt=rng.binomial(readsPerVariant,q,1)[0]
-    ref=readsPerVariant-alt
-    print(ref,",",alt,",",q,"\t",sep="",end="")
+    RNAalt=rng.binomial(readsPerVariant,q,1)[0]
+    RNAref=readsPerVariant-RNAalt
+    return(p,q,DNAref,DNAalt,RNAref,RNAalt)
             
 #=========================================================================
 # main()
@@ -185,8 +185,7 @@ numDonors=len(donors)
 pools=initPools(numPools)
 assignDonorsToPools(donors,pools)
 computePoolAFs(pools)
-heterogeneity=computeHeterogeneity(pools)
 
 # Simulate counts
 simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
-          noiseSD,heterogeneity)
+          noiseSD)

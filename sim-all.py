@@ -9,7 +9,8 @@ from Pipe import Pipe
 
 VCF="~/lab/kd259/BIRDbath_simulations/experimental_data/chr1.vcf.gz"
 OUTDIR="sim2026"
-GROUPS=[1,2,4,8,16]
+#GROUPS=[1,2,4,8,16]
+GROUPS=list(range(1,21))
 
 #=========================================================================
 # main()
