@@ -66,8 +66,6 @@ def loadVCF(vcfFilename,maxVariants,minAF,maxAF):
             rex.findOrDie("AF=([^;]+);",fields[7])
             AF=float(rex[1])
             if(AF<minAF or AF>maxAF): continue # allele frequency filter
-            numLoaded+=1
-            if(numLoaded>=maxVariants): break
             numDonors=numFields-9
             if(donors is None): donors=initDonors(numDonors)
             # Append genotypes of this variant to each donor
@@ -76,6 +74,8 @@ def loadVCF(vcfFilename,maxVariants,minAF,maxAF):
                 rex.findOrDie("(\d)\|(\d)",gt)
                 gt=[int(rex[1]),int(rex[2])]
                 donors[i-9].genotypes.append(gt)
+            numLoaded+=1
+            if(numLoaded>=maxVariants): break
     return donors
 
 def assignDonorsToPools(donors,pools):
@@ -83,15 +83,38 @@ def assignDonorsToPools(donors,pools):
     for index, element in enumerate(donors):
         pools[index % numPools].donors.append(element)
 
-def simCounts(numVariants,pools,readsPerVariant):
+def addNoise(x,sd):
+    if(x<sd): sd=x/2
+    noise=rng.normal(loc=0,scale=sd)
+    newValue=x+noise
+    while(newValue<=0):
+        sd/=2
+        noise=rng.normal(loc=0,scale=sd)
+        newValue=x+noise
+    return newValue
+        
+def simCounts(numVariants,pools,readsPerVariant,theta):
     numPools=len(pools)
+    numGroups=numPools # adjust later for replicates
+    print("variants=",numVariants," groups=",numGroups,
+          " each group is (ref,alt)",sep="")
     for i in range(numVariants):
+        print("var",i+1,"\t",sep="",end="")
         for j in range(numPools):
+            print("dna=",end="")
             pool=pools[j]
-            AF=pool.AFs[i]
-            alt=rng.binomial(readsPerVariant,AF,1)[0]
+            p=pool.AFs[i]
+            p=addNoise(p) # only added to DNA: represents transfection drift
+            alt=rng.binomial(readsPerVariant,p,1)[0]
             ref=readsPerVariant-alt
-            print(alt,",",ref)
+            print(alt,",",ref,"\t",sep="",end="")
+            print("rna=",end="")
+            q=theta*p/(1-p+theta*p)
+            alt=rng.binomial(readsPerVariant,q,1)[0]
+            ref=readsPerVariant-alt
+            print(alt,",",ref,"\t",sep="",end="")
+            if(j<numPools-1): print("\t",end="")
+        print()
             
 #=========================================================================
 # main()
@@ -111,14 +134,11 @@ readsPerVariant=int(readsPerVariant)
 # Load VCF file
 donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
 numDonors=len(donors)
-#print(donors[0].genotypes)
 
 # Assign donors to pools
 pools=initPools(numPools)
 assignDonorsToPools(donors,pools)
 computePoolAFs(pools)
-#for pool in pools: print(len(pool.donors))
-#print(pools[0].AFs)
 
 # Simulate counts
-simCounts(maxVariants,pools,readsPerVariant)
+simCounts(maxVariants,pools,readsPerVariant,theta)
