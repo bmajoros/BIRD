@@ -6,6 +6,7 @@
 import sys
 import random
 import gzip
+import statistics
 import numpy as np
 import ProgramName
 from Rex import Rex
@@ -42,6 +43,10 @@ class Pool:
                 totalAlts+=gt[0]+gt[1]
             self.AFs[i]=float(totalAlts)/float(totalAlleles)
 
+def computeHeterogeneity(pools):
+    values=[pool.AFs[0] for pool in pools]
+    return statistics.variance(values)
+    
 def computePoolAFs(pools):
     if(len(pools)==0): raise Exception("no pools")
     numVariants=pools[0].numVariants()
@@ -95,18 +100,21 @@ def addNoise(x,sd):
     if(newValue>1): newValue=1
     return newValue
         
-def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,sd):
+def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
+              sd,heterogeneity):
     multiplePools=(poolsOrReps=="pools")
     numPools=len(pools)
     numGroups=numPools if poolsOrReps=="pools" else numReps
     print("variants=",numVariants," groups=",numGroups,
+          " heterogeneity=",heterogeneity,
           " each group is (ref,alt)",sep="")
     for i in range(numVariants):
         print("var",i+1,"\t",sep="",end="")
         for j in range(numPools):
             pool=pools[j]
             for k in range(numReps):
-                generateGroup(pool,readsPerVariant,theta,i,j,sd)
+                varIndex=0 # Always simulate from the same real variant!
+                generateGroup(pool,readsPerVariant,theta,varIndex,j,sd)
                 if(multiplePools and j<numPools-1 or
                    not multiplePools and k<numReps-1):
                     print("\t",end="")
@@ -130,10 +138,10 @@ def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
 #=========================================================================
 if(len(sys.argv)!=10):
     exit(ProgramName.get()+" <in.vcf.gz> <num-variants> <min-AF> <max-AF> <num-pools-or-reps> <pools|reps> <theta> <#reads-per-variant-per-pool> <noiseSD>\n")
-(vcfFilename,maxVariants,minAF,maxAF,numGroups,poolsOrReps,theta,readsPerVariant,noiseSD)=sys.argv[1:]
+(vcfFilename,numVariants,minAF,maxAF,numGroups,poolsOrReps,theta,readsPerVariant,noiseSD)=sys.argv[1:]
 
 # Parse command line
-maxVariants=int(maxVariants)
+numVariants=int(numVariants)
 minAF=float(minAF)
 maxAF=float(maxAF)
 numGroups=int(numGroups)
@@ -147,13 +155,16 @@ elif(poolsOrReps=="reps"): numReps=numGroups
 else: raise Exception("specify pools or reps")
 
 # Load VCF file
-donors=loadVCF(vcfFilename,maxVariants,minAF,maxAF)
+MAX_VARIANTS=1 # always simulate from the same real variant!
+donors=loadVCF(vcfFilename,MAX_VARIANTS,minAF,maxAF)
 numDonors=len(donors)
 
 # Assign donors to pools
 pools=initPools(numPools)
 assignDonorsToPools(donors,pools)
 computePoolAFs(pools)
+heterogeneity=computeHeterogeneity(pools)
 
 # Simulate counts
-simCounts(maxVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,noiseSD)
+simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
+          noiseSD,heterogeneity)
