@@ -23,14 +23,15 @@ def readData(filename):
     variants=[]
     with open(filename,"rt") as IN:
         header=IN.readline()
-        rex.findOrDie("variants=(\d+) groups=(\d+) heterogeneity=(\S+)",header)
+        rex.findOrDie("variants=(\d+) groups=(\d+) heterogeneity=(\S+) theta=(\S+)",header)
         numVariants=int(rex[1])
         numGroups=int(rex[2])
         heterogeneity=float(rex[3])
+        theta=float(rex[4])
         for line in IN:
             v=parseVariant(line,numGroups)
             variants.append(v)
-    return (variants,numVariants,numGroups,heterogeneity)
+    return (variants,numVariants,numGroups,heterogeneity,theta)
 
 def parseVariant(line,numGroups):
     fields=line.rstrip().split()
@@ -47,10 +48,11 @@ def parseVariant(line,numGroups):
     return Variant(ID,groups)
 
 def parseCounts(text):
-    rex.findOrDie("na=(\d+),(\d+)",text)
+    rex.findOrDie("na=(\d+),(\d+),(\S+)",text)
     ref=int(rex[1])
     alt=int(rex[2])
-    return [ref,alt]
+    pq=float(rex[3])
+    return [ref,alt,pq]
 
 def computeVarDNA(variants):
     values=[]
@@ -92,7 +94,7 @@ if(len(sys.argv)!=2):
 (infile,)=sys.argv[1:]
 
 # Load variants
-variants,numVariants,numGroups,heterogeneity=readData(infile)
+variants,numVariants,numGroups,heterogeneity,theta=readData(infile)
 
 # Compute variance in DNA counts
 varDNA=computeVarDNA(variants)

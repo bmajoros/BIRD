@@ -45,7 +45,7 @@ class Pool:
 
 def computeHeterogeneity(pools):
     values=[pool.AFs[0] for pool in pools]
-    return statistics.variance(values)
+    return statistics.variance(values) if len(values)>1 else 0
     
 def computePoolAFs(pools):
     if(len(pools)==0): raise Exception("no pools")
@@ -98,6 +98,7 @@ def addNoise(x,sd):
         noise=rng.normal(loc=0,scale=sd)
         newValue=x+noise
     if(newValue>1): newValue=1
+    newValue=round(newValue,4)
     return newValue
         
 def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
@@ -106,8 +107,8 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
     numPools=len(pools)
     numGroups=numPools if poolsOrReps=="pools" else numReps
     print("variants=",numVariants," groups=",numGroups,
-          " heterogeneity=",heterogeneity,
-          " each group is (ref,alt)",sep="")
+          " heterogeneity=",heterogeneity," theta=",theta,
+          " each group is (ref,alt,AF)",sep="")
     for i in range(numVariants):
         print("var",i+1,"\t",sep="",end="")
         for j in range(numPools):
@@ -121,17 +122,18 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
         print()
 
 def generateGroup(pool,readsPerVariant,theta,varIndex,poolIndex,sd):
-    print("dna=",end="")
     p=pool.AFs[varIndex]
     p=addNoise(p,sd) # only added to DNA: represents transfection drift
     alt=rng.binomial(readsPerVariant,p,1)[0]
     ref=readsPerVariant-alt
-    print(alt,",",ref,"\t",sep="",end="")
+    print("dna=",end="")
+    print(ref,",",alt,",",p,"\t",sep="",end="")
     print("rna=",end="")
     q=theta*p/(1-p+theta*p)
+    q=round(q,5)
     alt=rng.binomial(readsPerVariant,q,1)[0]
     ref=readsPerVariant-alt
-    print(alt,",",ref,"\t",sep="",end="")
+    print(ref,",",alt,",",q,"\t",sep="",end="")
             
 #=========================================================================
 # main()
