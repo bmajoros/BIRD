@@ -102,7 +102,6 @@ def addNoise(x,sd):
         
 def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
               sd):
-    multiplePools=(poolsOrReps=="pools")
     numPools=len(pools)
     numGroups=numPools if poolsOrReps=="pools" else numReps
     readsPerGroup=int(readsPerVariant/numGroups)
@@ -118,7 +117,7 @@ def simCounts(numVariants,pools,readsPerVariant,theta,numReps,poolsOrReps,
             pool=pools[j]
             for k in range(numReps):
                 varIndex=0 # Always simulate from the same real variant!
-                rec=generateGroup(pool,readsPerGroup,theta,varIndex,j,sd)
+                rec=generateGroup(pool,readsPerGroup,theta,varIndex,sd)
                 recs.append(rec)
         hetero=computeHeterogeneity([rec[0] for rec in recs])
         print("var",i+1,"\theterogeneity=",hetero,
@@ -145,7 +144,7 @@ def getQbar(p_bar,theta):
 def transformPtoQ(p,theta):
     return theta*p/(1-p+theta*p)
         
-def generateGroup(pool,readsPerGroup,theta,varIndex,poolIndex,sd):
+def generateGroup(pool,readsPerGroup,theta,varIndex,sd):
     p=pool.AFs[varIndex]
     p=addNoise(p,sd) # only added to DNA: represents transfection drift
     DNAalt=rng.binomial(readsPerGroup,p,1)[0]

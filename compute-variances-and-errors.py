@@ -90,7 +90,7 @@ def computeVarP(variants):
         error=p_hat-variant.p_bar
         squaredErrors.append(error*error)
     var=statistics.variance(values)
-    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    rmse=math.sqrt(statistics.mean(squaredErrors))
     return (var,rmse)
 
 def computeVarQ(variants):
@@ -105,7 +105,7 @@ def computeVarQ(variants):
         error=q_hat-variant.q_bar
         squaredErrors.append(error*error)
     var=statistics.variance(values)
-    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    rmse=math.sqrt(statistics.mean(squaredErrors))
     return (var,rmse)
 
 def computeVarTheta(variants,theta):
@@ -119,7 +119,7 @@ def computeVarTheta(variants,theta):
         error=theta_hat-theta
         squaredErrors.append(error*error)
     var=statistics.variance(values)
-    rmse=math.sqrt(sum(squaredErrors)/len(squaredErrors))
+    rmse=math.sqrt(statistics.mean(squaredErrors))
     return (var,rmse)
     
 
