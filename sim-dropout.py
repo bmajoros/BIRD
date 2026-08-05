@@ -5,6 +5,7 @@
 #=========================================================================
 import sys
 import gzip
+import math
 import statistics
 from scipy.stats import binom
 import ProgramName
@@ -28,8 +29,8 @@ def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,COVERAGE):
             numProcessed+=1
             if(numProcessed>=MAX_VARIANTS): break
     n=len(sims)
+    #print(sims)
     for numPools in range(MAX_POOLS):
-        print(probs[numPools])
         ave=statistics.mean([probs[numPools] for probs in sims])
         print(numPools,ave,"\t")
 
@@ -38,9 +39,7 @@ def getDropoutProbs(genotypes,NUM_DONORS,MAX_POOLS,COVERAGE):
     for numPools in range(1,MAX_POOLS+1):
         partitioning=partition(genotypes,numPools)
         p=getDropout(partitioning,COVERAGE)
-        probs.append([numPools,p])
-    print("PROBS=",probs)
-    print()
+        probs.append(p)
     return probs
 
 def countAlts(pool):
@@ -52,7 +51,10 @@ def getDropout(pools,COVERAGE):
         N=len(pool)*2
         A=countAlts(pool)
         freq=float(A)/float(N)
+        if(freq>1):
+            raise Exception("freq>1: ",A,N,pool)
         p=binom.pmf(0,N,freq)
+        if(math.isnan(p)): raise Exception("NaN in binom(",0,N,freq)
         product*=p
     return product
 
@@ -70,6 +72,7 @@ def processLine(line,NUM_DONORS):
     for genotype in genotypes:
         rex.findOrDie("(\d)\|(\d)",genotype)
         gt=[int(rex[1]),int(rex[2])]
+        if(gt[0] not in [0,1] or gt[1] not in [0,1]): return None
         GT.append(gt)
     return GT
             
