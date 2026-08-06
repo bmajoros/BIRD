@@ -13,11 +13,11 @@ from Rex import Rex
 
 DEBUG=0
 rex=Rex()
+COVERAGES=[5,10,20,30,40,50,75,100]
 
-def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,COVERAGE,
-               MIN_AF,MAX_AF):
+def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF):
     numProcessed=0
-    sims=[]
+    variants=[]
     with gzip.open(filename,"rt") as IN:
         for line in IN:
             if(len(line)<1): continue
@@ -28,29 +28,38 @@ def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,COVERAGE,
             if(AF==0.0): continue
             if(AF<MIN_AF or AF>MAX_AF): continue
             #print("AF=",AF)
-            dropoutProbs=getDropoutProbs(genotypes,NUM_DONORS,MAX_POOLS,
-                                         COVERAGE)
-            sims.append(dropoutProbs)
+            variant=processVariant(genotypes,NUM_DONORS,MAX_POOLS)
+            variants.append(variant)
             numProcessed+=1
             if(numProcessed>=MAX_VARIANTS): break
-    print("NumPools\tDropout")
+    print("NumPools",end="")
+    for COVERAGE in COVERAGES:
+        print("\tFragments",COVERAGE,sep="",end="")
+    print()
     for numPools in range(MAX_POOLS):
-        ave=statistics.mean([probs[numPools] for probs in sims])
-        print(numPools+1,round(ave,5),sep="\t")
+        NCOV=len(COVERAGES)
+        print(numPools+1,end="")
+        for cov in range(NCOV):
+            ave=statistics.mean([var[numPools][cov] for var in variants])
+            print("\t",round(ave,5),end="")
+        print()
+
+def processVariant(genotypes,NUM_DONORS,MAX_POOLS):
+    variant=[]
+    for numPools in range(1,MAX_POOLS+1):
+        partitioning=partition(genotypes,numPools)
+        perCoverage=[]
+        for COVERAGE in COVERAGES:
+            p=getDropout(partitioning,COVERAGE)
+            perCoverage.append(p)
+        variant.append(perCoverage)
+    return variant
 
 def getAF(genotypes):
     A=countAlts(genotypes)
     N=2*len(genotypes)
     return float(A)/float(N)
         
-def getDropoutProbs(genotypes,NUM_DONORS,MAX_POOLS,COVERAGE):
-    probs=[]
-    for numPools in range(1,MAX_POOLS+1):
-        partitioning=partition(genotypes,numPools)
-        p=getDropout(partitioning,COVERAGE)
-        probs.append(p)
-    return probs
-
 def countAlts(pool):
     return sum([gt[0]+gt[1] for gt in pool])
 
@@ -91,19 +100,16 @@ def processLine(line,NUM_DONORS):
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=8):
-    exit(ProgramName.get()+" <in.vcf.gz> <max-pools> <max-variants> <#donors> <coverage> <min-AF> <max-AF>\nwhere coverage is the average # fragments per position\n")
-(vcfFilename,MAX_POOLS,MAX_VARIANTS,NUM_DONORS,COVERAGE,
- MIN_AF,MAX_AF)=sys.argv[1:]
+if(len(sys.argv)!=7):
+    exit(ProgramName.get()+" <in.vcf.gz> <max-pools> <max-variants> <#donors> <min-AF> <max-AF>\n")
+(vcfFilename,MAX_POOLS,MAX_VARIANTS,NUM_DONORS,MIN_AF,MAX_AF)=sys.argv[1:]
 MAX_POOLS=int(MAX_POOLS)
 MAX_VARIANTS=int(MAX_VARIANTS)
 NUM_DONORS=int(NUM_DONORS)
-COVERAGE=int(COVERAGE)
 MIN_AF=float(MIN_AF)
 MAX_AF=float(MAX_AF)
 
-processVCF(vcfFilename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,COVERAGE,
-           MIN_AF,MAX_AF)
+processVCF(vcfFilename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF)
 
 
 
