@@ -108,6 +108,7 @@ MAX_VARIANTS=int(MAX_VARIANTS)
 NUM_DONORS=int(NUM_DONORS)
 MIN_AF=float(MIN_AF)
 MAX_AF=float(MAX_AF)
+print("DONORS=",NUM_DONORS," AF=",MIN_AF,sep="",file=sys.stderr)
 
 processVCF(vcfFilename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF)
 
