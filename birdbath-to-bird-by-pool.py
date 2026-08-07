@@ -20,9 +20,9 @@ def closeOutputFiles(files):
 
 def processFile(filename,NUM_POOLS,MAX_VARIANTS,files):
     poolCounts=[0]*NUM_POOLS
-    PooledParser(filename)
+    parser=PooledParser(filename)
     while(True):
-        var=nextVariant() # Returns PooledVariant, or None if eof
+        var=parser.nextVariant() # Returns PooledVariant, or None if eof
         if(var is None): break
         processVariant(var,poolCounts,MAX_VARIANTS,files)
         if(reachedMaxVariants(poolCounts,MAX_VARIANTS)): break
@@ -34,11 +34,23 @@ def reachedMaxVariants(poolCounts,MAX_VARIANTS):
 
 def processVariant(var,poolCounts,MAX_VARIANTS,files):
     for pool in var.pools:
-        if(poolCounts[pool.index]>=MAX_VARIANTS): continue
-        emit(pool,files[pool.index])
+        if(poolCounts[pool.index-1]>=MAX_VARIANTS): continue
+        emit(var.ID,pool,files[pool.index-1])
+        poolCounts[pool.index-1]+=1
 
-def emit(pool,fh):
-    
+def emit(ID,pool,fh):
+    fields=[ID]
+    appendReps(pool.DNA,fields)
+    appendReps(pool.RNA,fields)
+    fields=[str(x) for x in fields]
+    joined="\t".join(fields)
+    print(joined,file=fh)
+
+def appendReps(reps,fields):
+    fields.append(len(reps))
+    for rep in reps:
+        fields.append(rep.ref)
+        fields.append(rep.alt)
     
 #=========================================================================
 # main()
