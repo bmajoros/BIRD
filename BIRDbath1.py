@@ -163,7 +163,9 @@ minEffect=float(minEffect)
 POP_CONC=float(POP_CONC)
 if(minEffect<1): raise Exception("Min-effect must be >= 1")
 THETA=None
-if(thetaFile is not None): THETA=open(thetaFile,"wt")
+if(thetaFile is not None):
+    #print("opening",thetaFile)
+    THETA=open(thetaFile,"wt")
 stan=Stan(model)
 
 # Process all input lines, each line = one variant (one MCMC run)

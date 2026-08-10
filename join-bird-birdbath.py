@@ -13,14 +13,14 @@ rex=Rex()
 class Variant:
     def __init__(self,ID):
         self.ID=ID
-        self.pools=[]
+        self.pools=["NA"]*20
         
 def loadBird(poolsDir):
     variants=dict()
     files=[str(f) for f in Path(poolsDir).iterdir() if f.is_file()]
     for filename in files:
         if(not rex.find("out(\d+).txt",filename)): continue
-        readBird(filename,variants,rex[1])
+        readBird(filename,variants,int(rex[1]))
     return variants
 
 def readBird(filename,variants,poolID):
@@ -33,9 +33,20 @@ def readBird(filename,variants,poolID):
             variant=variants.get(ID,None)
             if(variant is None):
                 variant=variants[ID]=Variant(ID)
+            variant.pools[poolID-1]=theta
     
 def processBirdBath(filename,BIRD):
-    pass
+    with open(filename) as IN:
+        for line in IN:
+            fields=line.rstrip().split()
+            if(len(fields)!=5): continue
+            (ID,theta,left,roght,Preg)=fields
+            if(not rex.find("^chr",ID)): continue
+            variant=BIRD.get(ID,None)
+            if(variant is None): continue
+                #raise Exception("No BIRD outputs found: ",ID)
+            fields=[ID,theta]; fields.extend(variant.pools)
+            print("\t".join(fields))
 
 #=========================================================================
 # main()
