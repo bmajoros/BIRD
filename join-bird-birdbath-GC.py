@@ -34,7 +34,8 @@ def readBird(filename,variants,poolID,MIN_P_REG):
             fields=line.rstrip().split()
             if(len(fields)!=5): continue
             (ID,theta,left,right,Preg)=fields
-            if(not rex.find("^chr",ID)): continue
+            if(not rex.find("^chr.*:\d+:([ACGT]):([ACGT])",ID)): continue
+            if(rex[1] not in "AT" or rex[2] not in "GC"): continue
             if(float(Preg)<MIN_P_REG): continue
             variant=variants.get(ID,None)
             if(variant is None):
