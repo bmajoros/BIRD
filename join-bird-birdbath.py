@@ -35,7 +35,7 @@ def readBird(filename,variants,poolID,MIN_P_REG):
             if(len(fields)!=5): continue
             (ID,theta,left,right,Preg)=fields
             if(not rex.find("^chr",ID)): continue
-            if(float(Preg)<MIN_P_REG): continue
+            #if(float(Preg)<MIN_P_REG): continue
             variant=variants.get(ID,None)
             if(variant is None):
                 variant=variants[ID]=Variant(ID)
@@ -48,11 +48,12 @@ def processBirdBath(filename,BIRD,MIN_P_REG):
             if(len(fields)!=5): continue
             (ID,theta,left,right,Preg)=fields
             if(not rex.find("^chr",ID)): continue
-            if(float(Preg)<MIN_P_REG): continue
+            #if(float(Preg)<MIN_P_REG): continue
             variant=BIRD.get(ID,None)
             if(variant is None): continue
             if(variant.allNA()): continue
             fields=[ID,theta]; fields.extend(variant.pools)
+            fields.append(Preg)
             print("\t".join(fields))
 
 #=========================================================================
