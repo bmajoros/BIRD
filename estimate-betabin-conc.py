@@ -134,8 +134,8 @@ def runVariant(stan,variant,numSamples,outfile):
 #=========================================================================
 (options,args)=getopt.getopt(sys.argv[1:],"s:t:")
 if(len(args)!=6):
-    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <min-effect> <input.essex> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
-(model,minEffect,inFile,outfile,numSamples,numVariants)=args
+    exit(ProgramName.get()+" [-s stanfile] [-t thetafile] <model> <MIN #POOLS> <input.essex> <output.txt> <#MCMC-samples> <firstVariant-lastVariant>\n   -s = save raw STAN file\n   -t = save theta samples\n   variant range is zero-based and inclusive\n   min-effect (lambda) must be >= 1\n")
+(model,MIN_POOLS,inFile,outfile,numSamples,numVariants)=args
 stanFile=None
 thetaFile=None
 for pair in options:
@@ -146,8 +146,7 @@ if(not rex.find(r"(\d+)-(\d+)",numVariants)):
     exit(numVariants+": specify range of variants: first-last")
 firstIndex=int(rex[1])
 lastIndex=int(rex[2])
-minEffect=float(minEffect)
-if(minEffect<1): raise Exception("Min-effect must be >= 1")
+MIN_POOLS=int(MIN_POOLS)
 THETA=None
 if(thetaFile is not None): THETA=open(thetaFile,"wt")
 stan=Stan(model)
@@ -166,6 +165,7 @@ while(True):
     elif(variantIndex>lastIndex): break
     keep=variant.dropHomozygousPools()
     if(not keep): continue
+    if(len(variant.pools)<MIN_POOLS): continue
     (conc,stanParser)=runVariant(stan,variant,numSamples,outfile)
     if(conc is None): continue
     #summarize(stanParser,thetas,variant.ID,minEffect)
