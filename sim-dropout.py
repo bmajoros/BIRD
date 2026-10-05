@@ -7,7 +7,8 @@ import sys
 import gzip
 import math
 import statistics
-from scipy.stats import binom
+#from scipy.stats import binom
+from scipy.special import gammaln
 import ProgramName
 from Rex import Rex
 
@@ -15,7 +16,7 @@ DEBUG=0
 rex=Rex()
 COVERAGES=[5,10,20,30,40,50,75,100]
 
-def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF):
+def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF,conc):
     numProcessed=0
     variants=[]
     with gzip.open(filename,"rt") as IN:
@@ -28,7 +29,7 @@ def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF):
             if(AF==0.0): continue
             if(AF<MIN_AF or AF>MAX_AF): continue
             #print("AF=",AF)
-            variant=processVariant(genotypes,NUM_DONORS,MAX_POOLS)
+            variant=processVariant(genotypes,NUM_DONORS,MAX_POOLS,conc)
             variants.append(variant)
             numProcessed+=1
             if(numProcessed>=MAX_VARIANTS): break
@@ -44,13 +45,13 @@ def processVCF(filename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF):
             print("\t",round(ave,5),end="")
         print()
 
-def processVariant(genotypes,NUM_DONORS,MAX_POOLS):
+def processVariant(genotypes,NUM_DONORS,MAX_POOLS,conc):
     variant=[]
     for numPools in range(1,MAX_POOLS+1):
         partitioning=partition(genotypes,numPools)
         perCoverage=[]
         for COVERAGE in COVERAGES:
-            p=getDropout(partitioning,COVERAGE)
+            p=getDropout(partitioning,COVERAGE,conc)
             perCoverage.append(p)
         variant.append(perCoverage)
     return variant
@@ -63,13 +64,18 @@ def getAF(genotypes):
 def countAlts(pool):
     return sum([gt[0]+gt[1] for gt in pool])
 
-def getDropout(pools,COVERAGE):
+def betabinom0(N,m,K):
+    logprob=gammaln((1-m)*K+N)+gammaln(K)-(gammaln((1-m)*K)+gammaln(K+N))
+    return math.exp(logprob)
+
+def getDropout(pools,COVERAGE,conc):
     if(DEBUG): print("NPOOLS=",len(pools))
     product=1
     for pool in pools:
         N=2*len(pool)
         freq=getAF(pool)
-        p=binom.pmf(0,COVERAGE,freq)
+        #p=binom.pmf(0,COVERAGE,freq)
+        p=betabinom0(COVERAGE,freq,conc)
         #print("binom(0,",N,",",freq,")=",p)
         if(DEBUG):
             print("\tAF=",freq,"A=",countAlts(pool),"N=",N,sep="\t",end="")
@@ -100,17 +106,18 @@ def processLine(line,NUM_DONORS):
 #=========================================================================
 # main()
 #=========================================================================
-if(len(sys.argv)!=7):
-    exit(ProgramName.get()+" <in.vcf.gz> <max-pools> <max-variants> <#donors> <min-AF> <max-AF>\n")
-(vcfFilename,MAX_POOLS,MAX_VARIANTS,NUM_DONORS,MIN_AF,MAX_AF)=sys.argv[1:]
+if(len(sys.argv)!=8):
+    exit(ProgramName.get()+" <in.vcf.gz> <max-pools> <max-variants> <#donors> <min-AF> <max-AF> <concentration>\n")
+(vcfFilename,MAX_POOLS,MAX_VARIANTS,NUM_DONORS,MIN_AF,MAX_AF,CONC)=sys.argv[1:]
 MAX_POOLS=int(MAX_POOLS)
 MAX_VARIANTS=int(MAX_VARIANTS)
 NUM_DONORS=int(NUM_DONORS)
 MIN_AF=float(MIN_AF)
 MAX_AF=float(MAX_AF)
+CONC=float(CONC)
 print("DONORS=",NUM_DONORS," AF=",MIN_AF,sep="",file=sys.stderr)
 
-processVCF(vcfFilename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF)
+processVCF(vcfFilename,MAX_VARIANTS,NUM_DONORS,MAX_POOLS,MIN_AF,MAX_AF,CONC)
 
 
 
